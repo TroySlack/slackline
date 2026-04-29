@@ -101,13 +101,13 @@ function SectorPie({ data }) {
   );
 }
 
-function HoldingsTable({ holdings, onDelete }) {
+function HoldingsTable({ holdings, onDelete, isAdmin }) {
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${COLORS.gray200}` }}>
-            {["Ticker","Shares","Cost Basis","Current","Mkt Value","P/L","P/L %","Sector",""].map(h => (
+            {["Ticker","Shares","Cost Basis","Current","Mkt Value","P/L","P/L %","Sector", ...(isAdmin ? [""] : [])].map(h => (
               <th key={h} style={{ textAlign: "left", padding: "10px 12px", color: COLORS.textSub, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.8 }}>{h}</th>
             ))}
           </tr>
@@ -130,26 +130,28 @@ function HoldingsTable({ holdings, onDelete }) {
                 <td style={{ padding: "12px", color: plColor, fontWeight: 600 }}>{fmtUSD(pl)}</td>
                 <td style={{ padding: "12px", color: plColor, fontWeight: 600 }}>{fmtPct(plPct)}</td>
                 <td style={{ padding: "12px", color: COLORS.textSub }}>{h.sector}</td>
-                <td style={{ padding: "12px" }}>
-                  <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
-                </td>
+                {isAdmin && (
+                  <td style={{ padding: "12px" }}>
+                    <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+                  </td>
+                )}
               </tr>
             );
           })}
-          {!holdings.length && <tr><td colSpan={9} style={{ padding: 30, textAlign: "center", color: COLORS.textSub }}>No holdings yet</td></tr>}
+          {!holdings.length && <tr><td colSpan={isAdmin ? 9 : 8} style={{ padding: 30, textAlign: "center", color: COLORS.textSub }}>No holdings yet</td></tr>}
         </tbody>
       </table>
     </div>
   );
 }
 
-function TradesTable({ trades, onDelete }) {
+function TradesTable({ trades, onDelete, isAdmin }) {
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${COLORS.gray200}` }}>
-            {["Date","Action","Ticker","Shares","Price","Total","Rationale",""].map(h => (
+            {["Date","Action","Ticker","Shares","Price","Total","Rationale", ...(isAdmin ? [""] : [])].map(h => (
               <th key={h} style={{ textAlign: "left", padding: "10px 12px", color: COLORS.textSub, fontWeight: 600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.8 }}>{h}</th>
             ))}
           </tr>
@@ -168,12 +170,14 @@ function TradesTable({ trades, onDelete }) {
               <td style={{ padding: "12px" }}>{fmtUSD(t.price)}</td>
               <td style={{ padding: "12px", fontWeight: 600 }}>{fmtUSD(t.shares * t.price)}</td>
               <td style={{ padding: "12px", color: COLORS.textSub, fontStyle: "italic", maxWidth: 250 }}>{t.rationale || "—"}</td>
-              <td style={{ padding: "12px" }}>
-                <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
-              </td>
+              {isAdmin && (
+                <td style={{ padding: "12px" }}>
+                  <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+                </td>
+              )}
             </tr>
           ))}
-          {!trades.length && <tr><td colSpan={8} style={{ padding: 30, textAlign: "center", color: COLORS.textSub }}>No trades logged yet</td></tr>}
+          {!trades.length && <tr><td colSpan={isAdmin ? 8 : 7} style={{ padding: 30, textAlign: "center", color: COLORS.textSub }}>No trades logged yet</td></tr>}
         </tbody>
       </table>
     </div>
@@ -300,7 +304,7 @@ function AddTradeForm({ onAdd, onClose }) {
 }
 
 /* ── Memo components ── */
-function MemoCard({ memo, onDelete }) {
+function MemoCard({ memo, onDelete, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <Card style={{ marginBottom: 14, cursor: "pointer", border: `1px solid ${expanded ? COLORS.accentLight : COLORS.gray200}` }}>
@@ -318,7 +322,9 @@ function MemoCard({ memo, onDelete }) {
         {expanded && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.gray200}` }}>
             <p style={{ margin: 0, color: COLORS.textSub, lineHeight: 1.7, fontSize: 14, whiteSpace: "pre-wrap" }}>{memo.thesis}</p>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(memo.id); }} style={{ marginTop: 14, padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete Memo</button>
+            {isAdmin && (
+              <button onClick={(e) => { e.stopPropagation(); onDelete(memo.id); }} style={{ marginTop: 14, padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete Memo</button>
+            )}
           </div>
         )}
       </div>
@@ -440,6 +446,12 @@ export default function PortfolioDashboard() {
   const [showAddMemo, setShowAddMemo] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [benchmarkRange, setBenchmarkRange] = useState("3mo");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsAdmin(params.has("edit"));
+  }, []);
 
   useEffect(() => {
     try {
@@ -591,17 +603,17 @@ export default function PortfolioDashboard() {
             <Card style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <h3 style={{ margin: 0, color: COLORS.text, fontSize: 17, fontFamily: FONT }}>Current Holdings</h3>
-                <button onClick={() => setShowAddHolding(true)} style={actionBtn}>+ Add Position</button>
+                {isAdmin && <button onClick={() => setShowAddHolding(true)} style={actionBtn}>+ Add Position</button>}
               </div>
-              <HoldingsTable holdings={liveHoldings} onDelete={deleteHolding} />
+              <HoldingsTable holdings={liveHoldings} onDelete={deleteHolding} isAdmin={isAdmin} />
             </Card>
 
             <Card>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <h3 style={{ margin: 0, color: COLORS.text, fontSize: 17, fontFamily: FONT }}>Executed Trades</h3>
-                <button onClick={() => setShowAddTrade(true)} style={actionBtn}>+ Log Trade</button>
+                {isAdmin && <button onClick={() => setShowAddTrade(true)} style={actionBtn}>+ Log Trade</button>}
               </div>
-              <TradesTable trades={portfolio.trades} onDelete={deleteTrade} />
+              <TradesTable trades={portfolio.trades} onDelete={deleteTrade} isAdmin={isAdmin} />
             </Card>
           </div>
         )}
@@ -614,14 +626,14 @@ export default function PortfolioDashboard() {
                 <h2 style={{ margin: 0, color: COLORS.text, fontSize: 24, fontFamily: FONT }}>Independent Analysis</h2>
                 <p style={{ margin: "6px 0 0", color: COLORS.textSub, fontSize: 14 }}>Original investment research and financial analysis.</p>
               </div>
-              <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white }}>+ New Memo</button>
+              {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white }}>+ New Memo</button>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
               <Card><MetricCard label="Total Memos" value={memos.length} /></Card>
               <Card><MetricCard label="Active" value={memos.filter(m => m.status === "Active").length} color={COLORS.green} /></Card>
               <Card><MetricCard label="Watchlist" value={memos.filter(m => m.status === "Watchlist").length} color={COLORS.accent} /></Card>
             </div>
-            {memos.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} />)}
+            {memos.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
             {!memos.length && (
               <Card style={{ textAlign: "center", padding: 60 }}>
                 <div style={{ color: COLORS.textSub, fontSize: 16 }}>No memos yet. Write your first investment thesis.</div>
