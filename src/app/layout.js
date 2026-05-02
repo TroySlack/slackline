@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'TS-8 Capital',
+  title: 'Slackline',
   description: 'Portfolio dashboard and investment memo tracker',
 };
 

@@ -33,7 +33,7 @@ const SECTOR_COLORS = ["#2563eb","#0891b2","#059669","#d97706","#dc2626","#7c3ae
 const TABS = ["Portfolio", "Analysis"];
 
 const DEFAULT_PORTFOLIO = {
-  "TS-8 Fund": {
+  "Slackline Fund": {
     accountValue: 0,
     holdings: [],
     trades: [],
@@ -455,7 +455,7 @@ export default function PortfolioDashboard() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ts8-portfolio-data");
+      const saved = localStorage.getItem("slackline-portfolio-data");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.portfolios) setPortfolios(parsed.portfolios);
@@ -468,12 +468,12 @@ export default function PortfolioDashboard() {
   useEffect(() => {
     if (!loaded) return;
     try {
-      localStorage.setItem("ts8-portfolio-data", JSON.stringify({ portfolios, memos }));
+      localStorage.setItem("slackline-portfolio-data", JSON.stringify({ portfolios, memos }));
 
     } catch (e) { console.error("Save error:", e); }
   }, [portfolios, memos, loaded]);
 
-  const currentPortfolioKey = "TS-8 Fund";
+  const currentPortfolioKey = "Slackline Fund";
   const portfolio = portfolios[currentPortfolioKey] || { accountValue: 0, holdings: [], trades: [] };
 
   const { quotes, lastUpdated, loading: quotesLoading, refetch } = useLiveQuotes(portfolio.holdings, loaded);
@@ -525,9 +525,9 @@ export default function PortfolioDashboard() {
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 70 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.primary})`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: COLORS.white, fontWeight: 800, fontSize: 16 }}>TS</span>
+              <span style={{ color: COLORS.white, fontWeight: 800, fontSize: 16 }}>SL</span>
             </div>
-            <span style={{ fontFamily: FONT, fontSize: 22, color: COLORS.text, fontWeight: 400 }}>TS-8 Capital</span>
+            <span style={{ fontFamily: FONT, fontSize: 22, color: COLORS.text, fontWeight: 400 }}>Slackline</span>
           </div>
           <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 12, padding: 4 }}>
             {TABS.map((tab, i) => (
