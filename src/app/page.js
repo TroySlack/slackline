@@ -334,13 +334,13 @@ function MemoCard({ memo, onDelete, isAdmin }) {
 }
 
 function AddMemoForm({ onAdd, onClose }) {
-  const [form, setForm] = useState({ ticker: "", title: "", thesis: "", status: "Active" });
+  const [form, setForm] = useState({ ticker: "", title: "", thesis: "", status: "Active", type: "memo" });
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
   const submit = () => {
     if (!form.ticker || !form.title || !form.thesis) return;
-    onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status });
+    onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status, type: form.type });
     onClose();
   };
   return (
@@ -348,8 +348,13 @@ function AddMemoForm({ onAdd, onClose }) {
       <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 540, maxHeight: "90vh", overflow: "auto" }}>
         <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 19, fontFamily: FONT }}>New Investment Memo</h3>
         <div style={{ display: "grid", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. MSFT" /></div>
+            <div><label style={labelStyle}>Type</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.type} onChange={handle("type")}>
+                <option value="memo">Full-Length Memo</option><option value="thesis">Investment Thesis</option>
+              </select>
+            </div>
             <div><label style={labelStyle}>Status</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.status} onChange={handle("status")}>
                 <option value="Active">Active</option><option value="Watchlist">Watchlist</option><option value="Closed">Closed</option>
@@ -483,6 +488,7 @@ export default function PortfolioDashboard() {
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showAddMemo, setShowAddMemo] = useState(false);
+  const [memoSubTab, setMemoSubTab] = useState("memo");
   const [showLogin, setShowLogin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [benchmarkRange, setBenchmarkRange] = useState("3mo");
@@ -539,6 +545,7 @@ export default function PortfolioDashboard() {
         const loadedMemos = (memosData || []).map(m => ({
           id: m.id, ticker: m.ticker, title: m.title,
           thesis: m.thesis, date: m.date, status: m.status,
+          type: m.type || "thesis",
         }));
 
         setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades } });
@@ -600,7 +607,7 @@ export default function PortfolioDashboard() {
   const addMemo = async (m) => {
     const { data } = await supabase.from("memos").insert({
       portfolio_id: portfolioId, ticker: m.ticker, title: m.title,
-      thesis: m.thesis, date: m.date, status: m.status,
+      thesis: m.thesis, date: m.date, status: m.status, type: m.type,
     }).select().single();
     setMemos(prev => [{ ...m, id: data.id }, ...prev]);
   };
@@ -726,13 +733,6 @@ export default function PortfolioDashboard() {
               <HoldingsTable holdings={liveHoldings} onDelete={deleteHolding} isAdmin={isAdmin} />
             </Card>
 
-            <Card>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ margin: 0, color: COLORS.text, fontSize: 17, fontFamily: FONT }}>Executed Trades</h3>
-                {isAdmin && <button onClick={() => setShowAddTrade(true)} style={actionBtn}>+ Log Trade</button>}
-              </div>
-              <TradesTable trades={portfolio.trades} onDelete={deleteTrade} isAdmin={isAdmin} />
-            </Card>
           </div>
         )}
 
@@ -746,17 +746,23 @@ export default function PortfolioDashboard() {
               </div>
               {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white }}>+ New Memo</button>}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-              <Card><MetricCard label="Total Memos" value={memos.length} /></Card>
-              <Card><MetricCard label="Active" value={memos.filter(m => m.status === "Active").length} color={COLORS.green} /></Card>
-              <Card><MetricCard label="Watchlist" value={memos.filter(m => m.status === "Watchlist").length} color={COLORS.accent} /></Card>
-            </div>
-            {memos.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
-            {!memos.length && (
-              <Card style={{ textAlign: "center", padding: 60 }}>
-                <div style={{ color: COLORS.textSub, fontSize: 16 }}>No memos yet. Write your first investment thesis.</div>
-              </Card>
-            )}
+            {[
+              { key: "memo", heading: "Full-Length Memos", emptyText: "No full-length memos yet." },
+              { key: "thesis", heading: "Investment Theses", emptyText: "No investment theses yet." },
+            ].map(section => {
+              const filtered = memos.filter(m => (m.type || "thesis") === section.key);
+              return (
+                <div key={section.key} style={{ marginBottom: 40 }}>
+                  <h3 style={{ margin: "0 0 16px", color: COLORS.text, fontSize: 20, fontFamily: FONT, borderBottom: `1px solid ${COLORS.gray200}`, paddingBottom: 10 }}>{section.heading}</h3>
+                  {filtered.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
+                  {!filtered.length && (
+                    <Card style={{ textAlign: "center", padding: 40 }}>
+                      <div style={{ color: COLORS.textSub, fontSize: 14 }}>{section.emptyText}</div>
+                    </Card>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
