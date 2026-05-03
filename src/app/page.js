@@ -4,33 +4,33 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart, Bar, ReferenceLine } from "recharts";
 
-const FONT = "'Be Vietnam Pro', sans-serif";
+const FONT = "'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+const SERIF = "'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif";
 
 const COLORS = {
-  primary: "#1a3a5c",      // kept for logo gradient / button backgrounds only
-  accent: "#2563eb",       // buttons and interactive elements only
-  accentLight: "#3b82f6",
-  accentPale: "#dbeafe",
-  accentFaint: "#eff6ff",
-  green: "#059669",        // profit / positive P&L only
-  greenBg: "#ecfdf5",
-  red: "#dc2626",          // loss / negative P&L only
-  redBg: "#fef2f2",
-  orange: "#d97706",
-  orangeBg: "#fffbeb",
-  gray100: "#f8fafc",
-  gray200: "#e2e8f0",
-  gray300: "#cbd5e1",
-  gray400: "#94a3b8",
-  gray500: "#64748b",
-  gray600: "#475569",
-  white: "#ffffff",
-  // Typography
-  text: "#111111",         // all primary text
-  textSub: "#555555",      // secondary / meta text
+  primary: "#2D2D2D",      // dark text / brand
+  accent: "#96151D",       // Vanguard red — primary CTA + brand
+  accentLight: "#B82027",
+  accentPale: "#F9E8E9",
+  accentFaint: "#FBF4F1",  // very subtle cream-red row hover
+  green: "#007355",        // muted green for gains
+  greenBg: "#E8F2EE",
+  red: "#B91C1C",          // muted red for losses
+  redBg: "#F9E8E9",
+  orange: "#A85A00",
+  orangeBg: "#FBF1E5",
+  gray100: "#F4EFE8",      // page background — warm cream
+  gray200: "#DDD6C7",      // primary border
+  gray300: "#BFB8AC",
+  gray400: "#8A857C",
+  gray500: "#5C5750",
+  gray600: "#3A3733",
+  white: "#FFFFFF",
+  text: "#1B1B1B",
+  textSub: "#4A4A4A",
 };
 
-const SECTOR_COLORS = ["#2563eb","#0891b2","#059669","#d97706","#dc2626","#7c3aed","#db2777","#0d9488","#4f46e5","#ca8a04","#6366f1"];
+const SECTOR_COLORS = ["#96151D","#5B5EA6","#6B5B95","#007355","#A85A00","#2C5F7F","#955251","#B05828","#3D5A40","#6B4226","#7A4F8A"];
 const TABS = ["Portfolio", "Analysis"];
 
 const DEFAULT_PORTFOLIO = {
@@ -70,7 +70,7 @@ const avgPE = (holdings) => {
 /* ── shared UI ── */
 function Card({ children, style = {} }) {
   return (
-    <div style={{ background: COLORS.white, borderRadius: 14, border: `1px solid ${COLORS.gray200}`, padding: "24px", ...style }}>
+    <div style={{ background: COLORS.white, borderRadius: 4, border: `1px solid ${COLORS.gray200}`, padding: "28px", ...style }}>
       {children}
     </div>
   );
@@ -194,12 +194,12 @@ function AddHoldingForm({ onAdd, onClose }) {
     onAdd({ ticker: form.ticker.toUpperCase(), shares: +form.shares, costBasis: +form.costBasis, currentPrice: +form.currentPrice, sector: form.sector, pe: form.pe ? +form.pe : null });
     onClose();
   };
-  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit" };
+  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 440, maxHeight: "90vh", overflow: "auto" }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 19, fontFamily: FONT }}>Add Holding</h3>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 440, maxHeight: "90vh", overflow: "auto" }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Add Holding</h3>
         <div style={{ display: "grid", gap: 14 }}>
           <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. AAPL" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -217,8 +217,8 @@ function AddHoldingForm({ onAdd, onClose }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-          <button onClick={submit} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>Add Position</button>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+          <button onClick={submit} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600, letterSpacing: 0.3 }}>Add Position</button>
         </div>
       </div>
     </div>
@@ -230,7 +230,7 @@ function AddTradeForm({ onAdd, onClose }) {
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit" };
+  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
 
   const submitManual = () => {
@@ -258,9 +258,9 @@ function AddTradeForm({ onAdd, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 500, maxHeight: "90vh", overflow: "auto" }}>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 500, maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h3 style={{ margin: 0, color: COLORS.text, fontSize: 19, fontFamily: FONT }}>Log Trade</h3>
+          <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Log Trade</h3>
           <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 8, padding: 3 }}>
             <button onClick={() => setPasteMode(false)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: !pasteMode ? COLORS.accent : "transparent", color: !pasteMode ? COLORS.white : COLORS.gray500, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Manual</button>
             <button onClick={() => setPasteMode(true)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: pasteMode ? COLORS.accent : "transparent", color: pasteMode ? COLORS.white : COLORS.gray500, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Paste from Fidelity</button>
@@ -271,8 +271,8 @@ function AddTradeForm({ onAdd, onClose }) {
             <p style={{ fontSize: 13, color: COLORS.textSub, marginBottom: 12 }}>Paste your Fidelity activity. Expected: Date, Action, Ticker, Shares, Price (tab or comma separated)</p>
             <textarea style={{ ...inputStyle, height: 200, resize: "vertical", fontFamily: "monospace", fontSize: 12 }} value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder={"03/15/2025\tBUY\tVTI\t10\t245.00"} />
             <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-              <button onClick={parsePaste} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>Import Trades</button>
+              <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+              <button onClick={parsePaste} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600, letterSpacing: 0.3 }}>Import Trades</button>
             </div>
           </div>
         ) : (
@@ -294,8 +294,8 @@ function AddTradeForm({ onAdd, onClose }) {
               <div><label style={labelStyle}>Rationale</label><input style={inputStyle} value={form.rationale} onChange={handle("rationale")} placeholder="Why this trade?" /></div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-              <button onClick={submitManual} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>Log Trade</button>
+              <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+              <button onClick={submitManual} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600, letterSpacing: 0.3 }}>Log Trade</button>
             </div>
           </div>
         )}
@@ -316,7 +316,7 @@ function MemoCard({ memo, onDelete, isAdmin }) {
               <span style={{ fontWeight: 700, color: COLORS.text, fontSize: 13, background: COLORS.gray100, padding: "3px 10px", borderRadius: 6, border: `1px solid ${COLORS.gray200}` }}>{memo.ticker}</span>
               <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 6, background: memo.status === "Active" ? COLORS.greenBg : memo.status === "Closed" ? COLORS.redBg : COLORS.gray100, color: memo.status === "Active" ? COLORS.green : memo.status === "Closed" ? COLORS.red : COLORS.text }}>{memo.status}</span>
             </div>
-            <h4 style={{ margin: 0, fontSize: 16, color: COLORS.text, fontFamily: FONT }}>{memo.title}</h4>
+            <h4 style={{ margin: 0, fontSize: 20, color: COLORS.text, fontFamily: SERIF, fontWeight: 600 }}>{memo.title}</h4>
           </div>
           <div style={{ fontSize: 13, color: COLORS.textSub }}>{memo.date}</div>
         </div>
@@ -343,7 +343,7 @@ function AddMemoForm({ onAdd, onClose }) {
   const [pdfFile, setPdfFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit" };
+  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
   const submit = async () => {
     if (!form.ticker || !form.title || !form.thesis) return;
@@ -361,8 +361,8 @@ function AddMemoForm({ onAdd, onClose }) {
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 540, maxHeight: "90vh", overflow: "auto" }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 19, fontFamily: FONT }}>New Investment Memo</h3>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 540, maxHeight: "90vh", overflow: "auto" }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>New Investment Memo</h3>
         <div style={{ display: "grid", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. MSFT" /></div>
@@ -382,7 +382,7 @@ function AddMemoForm({ onAdd, onClose }) {
           <div><label style={labelStyle}>PDF (optional)</label><input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} style={{ ...inputStyle, padding: 8 }} /></div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
           <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1 }}>{uploading ? "Uploading..." : "Save Memo"}</button>
         </div>
       </div>
@@ -429,15 +429,15 @@ function LoginModal({ onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 380 }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 19, fontFamily: FONT }}>Admin Login</h3>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 380 }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Admin Login</h3>
         <form onSubmit={submit} style={{ display: "grid", gap: 14 }}>
           <div><label style={labelStyle}>Email</label><input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} autoFocus /></div>
           <div><label style={labelStyle}>Password</label><input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
           {error && <div style={{ fontSize: 13, color: COLORS.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
-            <button type="button" onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-            <button type="submit" disabled={loading} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>{loading ? "Signing in..." : "Sign In"}</button>
+            <button type="button" onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+            <button type="submit" disabled={loading} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600, letterSpacing: 0.3 }}>{loading ? "Signing in..." : "Sign In"}</button>
           </div>
         </form>
       </div>
@@ -636,17 +636,18 @@ export default function PortfolioDashboard() {
   };
 
   const btnStyle = (active) => ({
-    padding: "10px 24px", borderRadius: 10, border: "none",
-    background: active ? COLORS.accent : "transparent",
-    color: active ? COLORS.white : COLORS.gray500,
-    cursor: "pointer", fontWeight: 700, fontSize: 14,
-    transition: "all 0.2s", fontFamily: FONT,
+    padding: "18px 4px", marginRight: 28, borderRadius: 0, border: "none",
+    background: "transparent",
+    color: active ? COLORS.text : COLORS.textSub,
+    cursor: "pointer", fontWeight: active ? 700 : 500, fontSize: 15,
+    fontFamily: FONT, letterSpacing: 0.2,
+    borderBottom: active ? `3px solid ${COLORS.accent}` : "3px solid transparent",
   });
 
   const actionBtn = {
-    padding: "10px 20px", borderRadius: 10, border: `2px solid ${COLORS.accent}`,
+    padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.accent}`,
     background: COLORS.white, color: COLORS.accent, cursor: "pointer",
-    fontWeight: 700, fontSize: 13, transition: "all 0.2s", fontFamily: FONT,
+    fontWeight: 600, fontSize: 13, fontFamily: FONT, letterSpacing: 0.3,
   };
 
   if (!loaded) return (
@@ -656,31 +657,34 @@ export default function PortfolioDashboard() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(180deg, ${COLORS.accentFaint} 0%, ${COLORS.gray100} 100%)`, fontFamily: FONT, color: COLORS.text }}>
-      {/* Header */}
+    <div style={{ minHeight: "100vh", background: COLORS.gray100, fontFamily: FONT, color: COLORS.text }}>
+      {/* Brand strip */}
+      <div style={{ background: COLORS.accent, height: 4 }} />
+      {/* Header — logo + sign in */}
       <div style={{ background: COLORS.white, borderBottom: `1px solid ${COLORS.gray200}`, padding: "0 40px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 70 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 36, height: 36, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.primary})`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: COLORS.white, fontWeight: 800, fontSize: 16 }}>SL</span>
-            </div>
-            <span style={{ fontFamily: FONT, fontSize: 22, color: COLORS.text, fontWeight: 400 }}>Slackline</span>
+        <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontFamily: SERIF, fontSize: 28, color: COLORS.accent, fontWeight: 700, letterSpacing: -0.5 }}>Slackline</span>
+            <span style={{ fontFamily: SERIF, fontSize: 13, color: COLORS.textSub, fontStyle: "italic" }}>Capital</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 12, padding: 4 }}>
-              {TABS.map((tab, i) => (
-                <button key={tab} onClick={() => setActiveTab(i)} style={btnStyle(activeTab === i)}>{tab}</button>
-              ))}
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             {isAdmin
-              ? <button onClick={() => supabase.auth.signOut()} style={{ fontSize: 12, color: COLORS.gray500, background: "none", border: "none", cursor: "pointer", fontWeight: 600, fontFamily: FONT }}>Sign Out</button>
-              : <button onClick={() => setShowLogin(true)} style={{ fontSize: 12, color: COLORS.gray300, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>·</button>
+              ? <button onClick={() => supabase.auth.signOut()} style={{ fontSize: 13, color: COLORS.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600, fontFamily: FONT, textDecoration: "underline" }}>Sign Out</button>
+              : <button onClick={() => setShowLogin(true)} style={{ fontSize: 13, color: COLORS.gray300, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>·</button>
             }
           </div>
         </div>
       </div>
+      {/* Secondary nav — tabs */}
+      <div style={{ background: COLORS.white, borderBottom: `1px solid ${COLORS.gray200}`, padding: "0 40px" }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center" }}>
+          {TABS.map((tab, i) => (
+            <button key={tab} onClick={() => setActiveTab(i)} style={btnStyle(activeTab === i)}>{tab}</button>
+          ))}
+        </div>
+      </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 40px" }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 40px 60px" }}>
 
         {/* TS-8 FUND TAB */}
         {activeTab === 0 && (
@@ -697,7 +701,7 @@ export default function PortfolioDashboard() {
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: COLORS.text, fontFamily: FONT }}>{fmtUSD(metrics.totalValue || portfolio.accountValue)}</div>
+                <div style={{ fontSize: 42, fontWeight: 600, color: COLORS.text, fontFamily: SERIF, letterSpacing: -0.5, marginTop: 6 }}>{fmtUSD(metrics.totalValue || portfolio.accountValue)}</div>
                 <div style={{ fontSize: 14, color: metrics.totalPL >= 0 ? COLORS.green : COLORS.red, fontWeight: 700, marginTop: 4 }}>
                   {fmtUSD(metrics.totalPL)} ({fmtPct(metrics.totalPLPct)}) all time
                 </div>
@@ -721,7 +725,7 @@ export default function PortfolioDashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 24 }}>
               <Card>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, color: COLORS.text, fontSize: 17, fontFamily: FONT }}>S&P 500 Benchmark</h3>
+                  <h3 style={{ margin: 0, color: COLORS.text, fontSize: 20, fontFamily: SERIF, fontWeight: 600 }}>S&P 500 Benchmark</h3>
                   <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 8, padding: 3 }}>
                     {[["1mo","1M"],["3mo","3M"],["6mo","6M"],["1y","1Y"],["ytd","YTD"]].map(([val, label]) => (
                       <button key={val} onClick={() => setBenchmarkRange(val)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", background: benchmarkRange === val ? COLORS.accent : "transparent", color: benchmarkRange === val ? COLORS.white : COLORS.gray500 }}>{label}</button>
@@ -731,7 +735,7 @@ export default function PortfolioDashboard() {
                 <PerfChart benchmarkData={benchmarkData} range={benchmarkRange} />
               </Card>
               <Card>
-                <h3 style={{ margin: "0 0 8px", color: COLORS.text, fontSize: 17, fontFamily: FONT }}>Sector Allocation</h3>
+                <h3 style={{ margin: "0 0 8px", color: COLORS.text, fontSize: 20, fontFamily: SERIF, fontWeight: 600 }}>Sector Allocation</h3>
                 <SectorPie data={sectorData} />
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, justifyContent: "center" }}>
                   {sectorData.map((s, i) => (
@@ -745,7 +749,7 @@ export default function PortfolioDashboard() {
 
             <Card style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ margin: 0, color: COLORS.text, fontSize: 17, fontFamily: FONT }}>Current Holdings</h3>
+                <h3 style={{ margin: 0, color: COLORS.text, fontSize: 20, fontFamily: SERIF, fontWeight: 600 }}>Current Holdings</h3>
                 {isAdmin && <button onClick={() => setShowAddHolding(true)} style={actionBtn}>+ Add Position</button>}
               </div>
               <HoldingsTable holdings={liveHoldings} onDelete={deleteHolding} isAdmin={isAdmin} />
@@ -759,10 +763,10 @@ export default function PortfolioDashboard() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div>
-                <h2 style={{ margin: 0, color: COLORS.text, fontSize: 24, fontFamily: FONT }}>Independent Analysis</h2>
-                <p style={{ margin: "6px 0 0", color: COLORS.textSub, fontSize: 14 }}>Original investment research and financial analysis.</p>
+                <h2 style={{ margin: 0, color: COLORS.text, fontSize: 32, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.5 }}>Independent Analysis</h2>
+                <p style={{ margin: "8px 0 0", color: COLORS.textSub, fontSize: 15, fontFamily: SERIF, fontStyle: "italic" }}>Original investment research and financial analysis.</p>
               </div>
-              {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white }}>+ New Memo</button>}
+              {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white, border: `1px solid ${COLORS.accent}` }}>+ New Memo</button>}
             </div>
             {[
               { key: "memo", heading: "Full-Length Memos", emptyText: "No full-length memos yet." },
@@ -771,7 +775,7 @@ export default function PortfolioDashboard() {
               const filtered = memos.filter(m => (m.type || "thesis") === section.key);
               return (
                 <div key={section.key} style={{ marginBottom: 40 }}>
-                  <h3 style={{ margin: "0 0 16px", color: COLORS.text, fontSize: 20, fontFamily: FONT, borderBottom: `1px solid ${COLORS.gray200}`, paddingBottom: 10 }}>{section.heading}</h3>
+                  <h3 style={{ margin: "0 0 16px", color: COLORS.text, fontSize: 24, fontFamily: SERIF, fontWeight: 600, borderBottom: `2px solid ${COLORS.accent}`, paddingBottom: 10 }}>{section.heading}</h3>
                   {filtered.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
                   {!filtered.length && (
                     <Card style={{ textAlign: "center", padding: 40 }}>
