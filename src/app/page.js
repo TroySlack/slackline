@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, BarChart, Bar, ReferenceLine } from "recharts";
 
 const FONT = "'Be Vietnam Pro', sans-serif";
@@ -132,7 +133,7 @@ function HoldingsTable({ holdings, onDelete, isAdmin }) {
                 <td style={{ padding: "12px", color: COLORS.textSub }}>{h.sector}</td>
                 {isAdmin && (
                   <td style={{ padding: "12px" }}>
-                    <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+                    <button onClick={() => onDelete(h.id)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
                   </td>
                 )}
               </tr>
@@ -172,7 +173,7 @@ function TradesTable({ trades, onDelete, isAdmin }) {
               <td style={{ padding: "12px", color: COLORS.textSub, fontStyle: "italic", maxWidth: 250 }}>{t.rationale || "—"}</td>
               {isAdmin && (
                 <td style={{ padding: "12px" }}>
-                  <button onClick={() => onDelete(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+                  <button onClick={() => onDelete(t.id)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
                 </td>
               )}
             </tr>
@@ -339,7 +340,7 @@ function AddMemoForm({ onAdd, onClose }) {
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
   const submit = () => {
     if (!form.ticker || !form.title || !form.thesis) return;
-    onAdd({ id: Date.now(), ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status });
+    onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status });
     onClose();
   };
   return (
@@ -382,6 +383,43 @@ function PerfChart({ benchmarkData, range }) {
         <Line type="monotone" dataKey="pctReturn" stroke={COLORS.gray400} strokeWidth={2} dot={false} strokeDasharray="6 3" name="S&P 500" connectNulls />
       </LineChart>
     </ResponsiveContainer>
+  );
+}
+
+/* ── Auth ── */
+function LoginModal({ onClose }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) setError(err.message);
+    else onClose();
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div style={{ background: COLORS.white, borderRadius: 16, padding: 32, width: 380 }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 19, fontFamily: FONT }}>Admin Login</h3>
+        <form onSubmit={submit} style={{ display: "grid", gap: 14 }}>
+          <div><label style={labelStyle}>Email</label><input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} autoFocus /></div>
+          <div><label style={labelStyle}>Password</label><input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+          {error && <div style={{ fontSize: 13, color: COLORS.red }}>{error}</div>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
+            <button type="button" onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+            <button type="submit" disabled={loading} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>{loading ? "Signing in..." : "Sign In"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -441,37 +479,77 @@ export default function PortfolioDashboard() {
   const [activeTab, setActiveTab] = useState(0);
   const [portfolios, setPortfolios] = useState(DEFAULT_PORTFOLIO);
   const [memos, setMemos] = useState(DEFAULT_MEMOS);
+  const [portfolioId, setPortfolioId] = useState(null);
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showAddMemo, setShowAddMemo] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [benchmarkRange, setBenchmarkRange] = useState("3mo");
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setIsAdmin(params.has("edit"));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAdmin(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("slackline-portfolio-data");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.portfolios) setPortfolios(parsed.portfolios);
-        if (parsed.memos) setMemos(parsed.memos);
+    async function loadData() {
+      try {
+        let { data: pf } = await supabase
+          .from("portfolios")
+          .select("*")
+          .eq("name", "Slackline Fund")
+          .single();
+
+        if (!pf) {
+          const { data: newPf } = await supabase
+            .from("portfolios")
+            .insert({ name: "Slackline Fund", account_value: 0 })
+            .select()
+            .single();
+          pf = newPf;
+        }
+
+        setPortfolioId(pf.id);
+
+        const [{ data: holdingsData }, { data: tradesData }, { data: memosData }] = await Promise.all([
+          supabase.from("holdings").select("*").eq("portfolio_id", pf.id),
+          supabase.from("trades").select("*").eq("portfolio_id", pf.id),
+          supabase.from("memos").select("*").eq("portfolio_id", pf.id),
+        ]);
+
+        const holdings = (holdingsData || []).map(h => ({
+          id: h.id, ticker: h.ticker, shares: +h.shares,
+          costBasis: +h.cost_basis, currentPrice: +h.current_price,
+          sector: h.sector, pe: h.pe_ratio ? +h.pe_ratio : null,
+        }));
+
+        const trades = (tradesData || []).map(t => ({
+          id: t.id, date: t.date, action: t.action,
+          ticker: t.ticker, shares: +t.shares,
+          price: +t.price, rationale: t.rationale || "",
+        }));
+
+        const loadedMemos = (memosData || []).map(m => ({
+          id: m.id, ticker: m.ticker, title: m.title,
+          thesis: m.thesis, date: m.date, status: m.status,
+        }));
+
+        setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades } });
+        setMemos(loadedMemos);
+      } catch (e) {
+        console.error("Load error:", e);
       }
-    } catch (e) { /* first load */ }
-    setLoaded(true);
+      setLoaded(true);
+    }
+    loadData();
   }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem("slackline-portfolio-data", JSON.stringify({ portfolios, memos }));
-
-    } catch (e) { console.error("Save error:", e); }
-  }, [portfolios, memos, loaded]);
 
   const currentPortfolioKey = "Slackline Fund";
   const portfolio = portfolios[currentPortfolioKey] || { accountValue: 0, holdings: [], trades: [] };
@@ -484,19 +562,53 @@ export default function PortfolioDashboard() {
   const sectorData = getSectorData(liveHoldings);
 
   const updatePortfolio = (key, updater) => setPortfolios(prev => ({ ...prev, [key]: updater(prev[key]) }));
-  const addHolding = (h) => updatePortfolio(currentPortfolioKey, p => ({ ...p, holdings: [...p.holdings, h] }));
-  const deleteHolding = (i) => updatePortfolio(currentPortfolioKey, p => ({ ...p, holdings: p.holdings.filter((_, j) => j !== i) }));
-  const addTrades = (ts) => updatePortfolio(currentPortfolioKey, p => ({ ...p, trades: [...p.trades, ...ts] }));
-  const deleteTrade = (i) => {
-    const sorted = portfolio.trades.slice().sort((a, b) => b.date.localeCompare(a.date));
-    const toRemove = sorted[i];
-    updatePortfolio(currentPortfolioKey, p => {
-      const idx = p.trades.indexOf(toRemove);
-      return { ...p, trades: p.trades.filter((_, j) => j !== idx) };
-    });
+
+  const addHolding = async (h) => {
+    const { data } = await supabase.from("holdings").insert({
+      portfolio_id: portfolioId, ticker: h.ticker, shares: h.shares,
+      cost_basis: h.costBasis, current_price: h.currentPrice,
+      sector: h.sector, pe_ratio: h.pe || null,
+    }).select().single();
+    updatePortfolio(currentPortfolioKey, p => ({ ...p, holdings: [...p.holdings, { ...h, id: data.id }] }));
   };
-  const addMemo = (m) => setMemos(prev => [m, ...prev]);
-  const deleteMemo = (id) => setMemos(prev => prev.filter(m => m.id !== id));
+
+  const deleteHolding = async (id) => {
+    await supabase.from("holdings").delete().eq("id", id);
+    updatePortfolio(currentPortfolioKey, p => ({ ...p, holdings: p.holdings.filter(h => h.id !== id) }));
+  };
+
+  const addTrades = async (ts) => {
+    const rows = ts.map(t => ({
+      portfolio_id: portfolioId, date: t.date, action: t.action,
+      ticker: t.ticker, shares: t.shares, price: t.price,
+      rationale: t.rationale || null,
+    }));
+    const { data } = await supabase.from("trades").insert(rows).select();
+    const newTrades = (data || []).map(t => ({
+      id: t.id, date: t.date, action: t.action,
+      ticker: t.ticker, shares: +t.shares,
+      price: +t.price, rationale: t.rationale || "",
+    }));
+    updatePortfolio(currentPortfolioKey, p => ({ ...p, trades: [...p.trades, ...newTrades] }));
+  };
+
+  const deleteTrade = async (id) => {
+    await supabase.from("trades").delete().eq("id", id);
+    updatePortfolio(currentPortfolioKey, p => ({ ...p, trades: p.trades.filter(t => t.id !== id) }));
+  };
+
+  const addMemo = async (m) => {
+    const { data } = await supabase.from("memos").insert({
+      portfolio_id: portfolioId, ticker: m.ticker, title: m.title,
+      thesis: m.thesis, date: m.date, status: m.status,
+    }).select().single();
+    setMemos(prev => [{ ...m, id: data.id }, ...prev]);
+  };
+
+  const deleteMemo = async (id) => {
+    await supabase.from("memos").delete().eq("id", id);
+    setMemos(prev => prev.filter(m => m.id !== id));
+  };
 
   const btnStyle = (active) => ({
     padding: "10px 24px", borderRadius: 10, border: "none",
@@ -529,10 +641,16 @@ export default function PortfolioDashboard() {
             </div>
             <span style={{ fontFamily: FONT, fontSize: 22, color: COLORS.text, fontWeight: 400 }}>Slackline</span>
           </div>
-          <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 12, padding: 4 }}>
-            {TABS.map((tab, i) => (
-              <button key={tab} onClick={() => setActiveTab(i)} style={btnStyle(activeTab === i)}>{tab}</button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 12, padding: 4 }}>
+              {TABS.map((tab, i) => (
+                <button key={tab} onClick={() => setActiveTab(i)} style={btnStyle(activeTab === i)}>{tab}</button>
+              ))}
+            </div>
+            {isAdmin
+              ? <button onClick={() => supabase.auth.signOut()} style={{ fontSize: 12, color: COLORS.gray500, background: "none", border: "none", cursor: "pointer", fontWeight: 600, fontFamily: FONT }}>Sign Out</button>
+              : <button onClick={() => setShowLogin(true)} style={{ fontSize: 12, color: COLORS.gray300, background: "none", border: "none", cursor: "pointer", fontFamily: FONT }}>·</button>
+            }
           </div>
         </div>
       </div>
@@ -644,6 +762,7 @@ export default function PortfolioDashboard() {
       </div>
 
       {/* Modals */}
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       {showAddHolding && <AddHoldingForm onAdd={addHolding} onClose={() => setShowAddHolding(false)} />}
       {showAddTrade && <AddTradeForm onAdd={addTrades} onClose={() => setShowAddTrade(false)} />}
       {showAddMemo && <AddMemoForm onAdd={addMemo} onClose={() => setShowAddMemo(false)} />}
