@@ -323,9 +323,14 @@ function MemoCard({ memo, onDelete, isAdmin }) {
         {expanded && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.gray200}` }}>
             <p style={{ margin: 0, color: COLORS.textSub, lineHeight: 1.7, fontSize: 14, whiteSpace: "pre-wrap" }}>{memo.thesis}</p>
-            {isAdmin && (
-              <button onClick={(e) => { e.stopPropagation(); onDelete(memo.id); }} style={{ marginTop: 14, padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete Memo</button>
-            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              {memo.pdf_url && (
+                <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none" }}>View PDF</a>
+              )}
+              {isAdmin && (
+                <button onClick={(e) => { e.stopPropagation(); onDelete(memo.id); }} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete Memo</button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -335,12 +340,23 @@ function MemoCard({ memo, onDelete, isAdmin }) {
 
 function AddMemoForm({ onAdd, onClose }) {
   const [form, setForm] = useState({ ticker: "", title: "", thesis: "", status: "Active", type: "memo" });
+  const [pdfFile, setPdfFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 8, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
-  const submit = () => {
+  const submit = async () => {
     if (!form.ticker || !form.title || !form.thesis) return;
-    onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status, type: form.type });
+    setUploading(true);
+    let pdf_url = null;
+    if (pdfFile) {
+      const path = `${Date.now()}-${pdfFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error } = await supabase.storage.from("memos").upload(path, pdfFile);
+      if (error) { alert("PDF upload failed: " + error.message); setUploading(false); return; }
+      pdf_url = supabase.storage.from("memos").getPublicUrl(path).data.publicUrl;
+    }
+    await onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status, type: form.type, pdf_url });
+    setUploading(false);
     onClose();
   };
   return (
@@ -363,10 +379,11 @@ function AddMemoForm({ onAdd, onClose }) {
           </div>
           <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={handle("title")} placeholder="Investment thesis title" /></div>
           <div><label style={labelStyle}>Thesis</label><textarea style={{ ...inputStyle, height: 180, resize: "vertical" }} value={form.thesis} onChange={handle("thesis")} placeholder="Bull case, key risks, catalysts, valuation rationale..." /></div>
+          <div><label style={labelStyle}>PDF (optional)</label><input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} style={{ ...inputStyle, padding: 8 }} /></div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 8, border: `1px solid ${COLORS.gray200}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-          <button onClick={submit} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600 }}>Save Memo</button>
+          <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1 }}>{uploading ? "Uploading..." : "Save Memo"}</button>
         </div>
       </div>
     </div>
@@ -545,7 +562,7 @@ export default function PortfolioDashboard() {
         const loadedMemos = (memosData || []).map(m => ({
           id: m.id, ticker: m.ticker, title: m.title,
           thesis: m.thesis, date: m.date, status: m.status,
-          type: m.type || "thesis",
+          type: m.type || "thesis", pdf_url: m.pdf_url || null,
         }));
 
         setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades } });
@@ -608,6 +625,7 @@ export default function PortfolioDashboard() {
     const { data } = await supabase.from("memos").insert({
       portfolio_id: portfolioId, ticker: m.ticker, title: m.title,
       thesis: m.thesis, date: m.date, status: m.status, type: m.type,
+      pdf_url: m.pdf_url || null,
     }).select().single();
     setMemos(prev => [{ ...m, id: data.id }, ...prev]);
   };
