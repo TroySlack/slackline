@@ -324,7 +324,7 @@ const positionColor = (label) => {
   return COLORS.textSub;
 };
 
-function ResearchCard({ memo, onDelete, isAdmin }) {
+function ResearchCard({ memo, onDelete, onEdit, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
@@ -349,7 +349,10 @@ function ResearchCard({ memo, onDelete, isAdmin }) {
             <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none", letterSpacing: 0.3 }}>View PDF</a>
           )}
           {isAdmin && (
-            <button onClick={() => onDelete(memo.id)} style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete</button>
+            <>
+              <button onClick={() => onEdit(memo)} style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Edit</button>
+              <button onClick={() => onDelete(memo.id)} style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete</button>
+            </>
           )}
         </div>
       )}
@@ -357,7 +360,7 @@ function ResearchCard({ memo, onDelete, isAdmin }) {
   );
 }
 
-function FeaturedCard({ memo, onDelete, isAdmin }) {
+function FeaturedCard({ memo, onDelete, onEdit, isAdmin }) {
   if (!memo) return null;
   const metrics = Array.isArray(memo.metrics) ? memo.metrics : [];
   return (
@@ -387,7 +390,10 @@ function FeaturedCard({ memo, onDelete, isAdmin }) {
           <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
         )}
         {isAdmin && (
-          <button onClick={() => onDelete(memo.id)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Delete</button>
+          <>
+            <button onClick={() => onEdit(memo)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Edit</button>
+            <button onClick={() => onDelete(memo.id)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Delete</button>
+          </>
         )}
       </div>
     </div>
@@ -397,26 +403,30 @@ function FeaturedCard({ memo, onDelete, isAdmin }) {
 const SUBTYPES = ["Initiation Memo", "Pass Note", "Update Memo", "Thesis Update", "Position Thesis", "Sector Note"];
 const SECTORS_LIST = ["Health Care","Financials","Consumer Staples","Industrials","Tech","Energy","Materials","Utilities","Real Estate","Communication Services","Consumer Discretionary","Diversified"];
 
-function AddMemoForm({ onAdd, onClose }) {
+function AddMemoForm({ onAdd, onClose, initial }) {
+  const isEdit = !!initial;
   const [form, setForm] = useState({
-    ticker: "", title: "", thesis: "", status: "Active", type: "memo",
-    subtype: "Initiation Memo", sector: "Tech", pages: "", read_minutes: "",
-    position_label: "", featured: false,
+    ticker: initial?.ticker || "", title: initial?.title || "", thesis: initial?.thesis || "",
+    status: initial?.status || "Active", type: initial?.type || "memo",
+    subtype: initial?.subtype || "", sector: initial?.sector || "",
+    pages: initial?.pages ?? "", read_minutes: initial?.read_minutes ?? "",
+    position_label: initial?.position_label || "", featured: !!initial?.featured,
   });
-  const [metrics, setMetrics] = useState([
-    { label: "Recommendation", value: "" }, { label: "Adj. ROIC", value: "" },
-    { label: "Implied IRR", value: "" }, { label: "Conviction", value: "" },
-  ]);
+  const initialMetrics = Array.isArray(initial?.metrics) && initial.metrics.length
+    ? [...initial.metrics, ...Array(Math.max(0, 4 - initial.metrics.length)).fill({ label: "", value: "" })].slice(0, 4)
+    : [{ label: "Recommendation", value: "" }, { label: "Adj. ROIC", value: "" }, { label: "Implied IRR", value: "" }, { label: "Conviction", value: "" }];
+  const [metrics, setMetrics] = useState(initialMetrics);
   const [pdfFile, setPdfFile] = useState(null);
+  const [removePdf, setRemovePdf] = useState(false);
   const [uploading, setUploading] = useState(false);
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
   const updateMetric = (i, k, v) => setMetrics(prev => prev.map((m, idx) => idx === i ? { ...m, [k]: v } : m));
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
   const submit = async () => {
-    if (!form.ticker || !form.title || !form.thesis) return;
     setUploading(true);
-    let pdf_url = null;
+    let pdf_url = isEdit ? (initial.pdf_url || null) : null;
+    if (removePdf) pdf_url = null;
     if (pdfFile) {
       const path = `${Date.now()}-${pdfFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error } = await supabase.storage.from("memos").upload(path, pdfFile);
@@ -425,9 +435,11 @@ function AddMemoForm({ onAdd, onClose }) {
     }
     const cleanMetrics = metrics.filter(m => m.label && m.value);
     await onAdd({
-      ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis,
-      date: new Date().toISOString().slice(0,10), status: form.status, type: form.type,
-      subtype: form.subtype, sector: form.sector,
+      ticker: form.ticker ? form.ticker.toUpperCase() : null,
+      title: form.title || null, thesis: form.thesis || null,
+      date: isEdit ? initial.date : new Date().toISOString().slice(0,10),
+      status: form.status, type: form.type,
+      subtype: form.subtype || null, sector: form.sector || null,
       pages: form.pages ? +form.pages : null, read_minutes: form.read_minutes ? +form.read_minutes : null,
       position_label: form.position_label || null, featured: form.featured,
       metrics: cleanMetrics.length ? cleanMetrics : null,
@@ -439,7 +451,7 @@ function AddMemoForm({ onAdd, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 640, maxHeight: "90vh", overflow: "auto" }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>New Research Piece</h3>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>{isEdit ? "Edit Research Piece" : "New Research Piece"}</h3>
         <div style={{ display: "grid", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. MSFT" /></div>
@@ -457,11 +469,13 @@ function AddMemoForm({ onAdd, onClose }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Subtype</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.subtype} onChange={handle("subtype")}>
+                <option value="">— None —</option>
                 {SUBTYPES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div><label style={labelStyle}>Sector</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.sector} onChange={handle("sector")}>
+                <option value="">— None —</option>
                 {SECTORS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -484,7 +498,16 @@ function AddMemoForm({ onAdd, onClose }) {
               ))}
             </div>
           </div>
-          <div><label style={labelStyle}>PDF (optional)</label><input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} style={{ ...inputStyle, padding: 8 }} /></div>
+          <div>
+            <label style={labelStyle}>PDF (optional)</label>
+            {isEdit && initial.pdf_url && !removePdf && !pdfFile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, color: COLORS.textSub }}>
+                <a href={initial.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.accent }}>Current PDF</a>
+                <button type="button" onClick={() => setRemovePdf(true)} style={{ padding: "4px 10px", fontSize: 11, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, borderRadius: 2, cursor: "pointer", fontWeight: 600 }}>Remove</button>
+              </div>
+            )}
+            <input type="file" accept="application/pdf" onChange={(e) => { setPdfFile(e.target.files?.[0] || null); setRemovePdf(false); }} style={{ ...inputStyle, padding: 8 }} />
+          </div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, cursor: "pointer" }}>
             <input type="checkbox" checked={form.featured} onChange={handle("featured")} />
             Mark as featured (shown at top of Analysis)
@@ -492,7 +515,7 @@ function AddMemoForm({ onAdd, onClose }) {
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-          <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1, letterSpacing: 0.3 }}>{uploading ? "Uploading..." : "Save"}</button>
+          <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1, letterSpacing: 0.3 }}>{uploading ? "Saving..." : (isEdit ? "Save Changes" : "Save")}</button>
         </div>
       </div>
     </div>
@@ -614,6 +637,7 @@ export default function PortfolioDashboard() {
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showAddMemo, setShowAddMemo] = useState(false);
+  const [editingMemo, setEditingMemo] = useState(null);
   const [memoSubTab, setMemoSubTab] = useState("all");
   const [memoSectorFilter, setMemoSectorFilter] = useState("all");
   const [showLogin, setShowLogin] = useState(false);
@@ -751,6 +775,21 @@ export default function PortfolioDashboard() {
   const deleteMemo = async (id) => {
     await supabase.from("memos").delete().eq("id", id);
     setMemos(prev => prev.filter(m => m.id !== id));
+  };
+
+  const updateMemo = async (id, m) => {
+    const { data } = await supabase.from("memos").update({
+      ticker: m.ticker, title: m.title, thesis: m.thesis,
+      status: m.status, type: m.type,
+      subtype: m.subtype, sector: m.sector,
+      pages: m.pages, read_minutes: m.read_minutes,
+      position_label: m.position_label, featured: m.featured,
+      metrics: m.metrics, pdf_url: m.pdf_url,
+    }).eq("id", id).select().single();
+    setMemos(prev => prev.map(x => x.id === id ? {
+      ...x, ...m,
+      pages: data?.pages ?? m.pages, read_minutes: data?.read_minutes ?? m.read_minutes,
+    } : x));
   };
 
   const btnStyle = (active) => ({
@@ -914,7 +953,7 @@ export default function PortfolioDashboard() {
               {featured && (
                 <>
                   <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Featured</div>
-                  <FeaturedCard memo={featured} onDelete={deleteMemo} isAdmin={isAdmin} />
+                  <FeaturedCard memo={featured} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />
                 </>
               )}
 
@@ -939,7 +978,7 @@ export default function PortfolioDashboard() {
                     <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Investment memos</h3>
                     <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.accent }}>{memoList.length}</span>
                   </div>
-                  {memoList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
+                  {memoList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />)}
                   {!memoList.length && <div style={{ color: COLORS.textSub, fontSize: 14, padding: "20px 4px" }}>No memos match this filter.</div>}
                 </div>
               )}
@@ -950,7 +989,7 @@ export default function PortfolioDashboard() {
                     <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Position theses</h3>
                     <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.accent }}>{thesisList.length}</span>
                   </div>
-                  {thesisList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
+                  {thesisList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />)}
                   {!thesisList.length && <div style={{ color: COLORS.textSub, fontSize: 14, padding: "20px 4px" }}>No theses match this filter.</div>}
                 </div>
               )}
@@ -964,6 +1003,7 @@ export default function PortfolioDashboard() {
       {showAddHolding && <AddHoldingForm onAdd={addHolding} onClose={() => setShowAddHolding(false)} />}
       {showAddTrade && <AddTradeForm onAdd={addTrades} onClose={() => setShowAddTrade(false)} />}
       {showAddMemo && <AddMemoForm onAdd={addMemo} onClose={() => setShowAddMemo(false)} />}
+      {editingMemo && <AddMemoForm initial={editingMemo} onAdd={(m) => updateMemo(editingMemo.id, m)} onClose={() => setEditingMemo(null)} />}
     </div>
   );
 }
