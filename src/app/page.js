@@ -305,46 +305,114 @@ function AddTradeForm({ onAdd, onClose }) {
 }
 
 /* ── Memo components ── */
-function MemoCard({ memo, onDelete, isAdmin }) {
+const fmtMonthYear = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+};
+const fmtMonthYearLong = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+};
+const positionColor = (label) => {
+  if (!label) return COLORS.textSub;
+  const l = label.toLowerCase();
+  if (l.startsWith("long") || l.startsWith("core") || l.startsWith("buy")) return COLORS.green;
+  if (l.startsWith("pass") || l.startsWith("short") || l.startsWith("sell")) return COLORS.red;
+  if (l.startsWith("watch")) return COLORS.orange;
+  return COLORS.textSub;
+};
+
+function ResearchCard({ memo, onDelete, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <Card style={{ marginBottom: 14, cursor: "pointer", border: `1px solid ${expanded ? COLORS.accentLight : COLORS.gray200}` }}>
-      <div onClick={() => setExpanded(!expanded)}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: COLORS.text, fontSize: 13, background: COLORS.gray100, padding: "3px 10px", borderRadius: 6, border: `1px solid ${COLORS.gray200}` }}>{memo.ticker}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 6, background: memo.status === "Active" ? COLORS.greenBg : memo.status === "Closed" ? COLORS.redBg : COLORS.gray100, color: memo.status === "Active" ? COLORS.green : memo.status === "Closed" ? COLORS.red : COLORS.text }}>{memo.status}</span>
-            </div>
-            <h4 style={{ margin: 0, fontSize: 20, color: COLORS.text, fontFamily: SERIF, fontWeight: 600 }}>{memo.title}</h4>
+    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+            {memo.subtype && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1 }}>{memo.subtype}</span>}
+            {memo.sector && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "3px 9px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.sector}</span>}
+            {memo.pages ? <span style={{ fontSize: 12, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.5 }}>{memo.pages} {memo.pages === 1 ? "page" : "pages"}</span> : null}
           </div>
-          <div style={{ fontSize: 13, color: COLORS.textSub }}>{memo.date}</div>
+          <h4 style={{ margin: "0 0 6px", fontSize: 19, color: COLORS.text, fontFamily: SERIF, fontWeight: 700, lineHeight: 1.3 }}>{memo.title}</h4>
+          <p style={{ margin: 0, color: COLORS.textSub, fontSize: 14, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: expanded ? "unset" : 2, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: expanded ? "pre-wrap" : "normal" }}>{memo.thesis}</p>
         </div>
-        {expanded && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.gray200}` }}>
-            <p style={{ margin: 0, color: COLORS.textSub, lineHeight: 1.7, fontSize: 14, whiteSpace: "pre-wrap" }}>{memo.thesis}</p>
-            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-              {memo.pdf_url && (
-                <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none" }}>View PDF</a>
-              )}
-              {isAdmin && (
-                <button onClick={(e) => { e.stopPropagation(); onDelete(memo.id); }} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete Memo</button>
-              )}
-            </div>
-          </div>
-        )}
+        <div style={{ textAlign: "right", flexShrink: 0, minWidth: 110 }}>
+          {memo.position_label && <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: positionColor(memo.position_label), fontWeight: 600 }}>{memo.position_label}</div>}
+          <div style={{ fontSize: 12, color: COLORS.textSub, marginTop: 4 }}>{fmtMonthYear(memo.date)}</div>
+        </div>
       </div>
-    </Card>
+      {expanded && (
+        <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
+          {memo.pdf_url && (
+            <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none", letterSpacing: 0.3 }}>View PDF</a>
+          )}
+          {isAdmin && (
+            <button onClick={() => onDelete(memo.id)} style={{ padding: "7px 16px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete</button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
+function FeaturedCard({ memo, onDelete, isAdmin }) {
+  if (!memo) return null;
+  const metrics = Array.isArray(memo.metrics) ? memo.metrics : [];
+  return (
+    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderLeft: `5px solid ${COLORS.accent}`, borderRadius: 4, padding: "28px 32px", marginBottom: 36 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
+        {memo.subtype && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "4px 12px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 1 }}>{memo.subtype}</span>}
+        {memo.sector && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{memo.sector}</span>}
+        <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{fmtMonthYearLong(memo.date)}</span>
+        {memo.read_minutes ? <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{memo.read_minutes} MIN READ</span> : null}
+      </div>
+      <h2 style={{ margin: "0 0 14px", fontSize: 32, fontFamily: SERIF, fontWeight: 700, color: COLORS.text, lineHeight: 1.2, letterSpacing: -0.4 }}>
+        {memo.title} {memo.ticker && <span style={{ color: COLORS.accent, fontStyle: "italic" }}>(${memo.ticker})</span>}
+      </h2>
+      <p style={{ margin: 0, color: COLORS.gray600, fontSize: 15, lineHeight: 1.7 }}>{memo.thesis}</p>
+      {metrics.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${metrics.length}, 1fr)`, gap: 24, marginTop: 22, paddingTop: 20, borderTop: `1px solid ${COLORS.gray200}` }}>
+          {metrics.map((m, i) => (
+            <div key={i}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontSize: 20, fontFamily: SERIF, fontWeight: 600, color: positionColor(m.value) === COLORS.green || (m.label || "").toLowerCase().includes("recommend") ? COLORS.green : COLORS.text }}>{m.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+        {memo.pdf_url && (
+          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
+        )}
+        {isAdmin && (
+          <button onClick={() => onDelete(memo.id)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Delete</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const SUBTYPES = ["Initiation Memo", "Pass Note", "Update Memo", "Thesis Update", "Position Thesis", "Sector Note"];
+const SECTORS_LIST = ["Health Care","Financials","Consumer Staples","Industrials","Tech","Energy","Materials","Utilities","Real Estate","Communication Services","Consumer Discretionary","Diversified"];
+
 function AddMemoForm({ onAdd, onClose }) {
-  const [form, setForm] = useState({ ticker: "", title: "", thesis: "", status: "Active", type: "memo" });
+  const [form, setForm] = useState({
+    ticker: "", title: "", thesis: "", status: "Active", type: "memo",
+    subtype: "Initiation Memo", sector: "Tech", pages: "", read_minutes: "",
+    position_label: "", featured: false,
+  });
+  const [metrics, setMetrics] = useState([
+    { label: "Recommendation", value: "" }, { label: "Adj. ROIC", value: "" },
+    { label: "Implied IRR", value: "" }, { label: "Conviction", value: "" },
+  ]);
   const [pdfFile, setPdfFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const handle = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const handle = (k) => (e) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const updateMetric = (i, k, v) => setMetrics(prev => prev.map((m, idx) => idx === i ? { ...m, [k]: v } : m));
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
-  const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
   const submit = async () => {
     if (!form.ticker || !form.title || !form.thesis) return;
     setUploading(true);
@@ -355,20 +423,29 @@ function AddMemoForm({ onAdd, onClose }) {
       if (error) { alert("PDF upload failed: " + error.message); setUploading(false); return; }
       pdf_url = supabase.storage.from("memos").getPublicUrl(path).data.publicUrl;
     }
-    await onAdd({ ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis, date: new Date().toISOString().slice(0,10), status: form.status, type: form.type, pdf_url });
+    const cleanMetrics = metrics.filter(m => m.label && m.value);
+    await onAdd({
+      ticker: form.ticker.toUpperCase(), title: form.title, thesis: form.thesis,
+      date: new Date().toISOString().slice(0,10), status: form.status, type: form.type,
+      subtype: form.subtype, sector: form.sector,
+      pages: form.pages ? +form.pages : null, read_minutes: form.read_minutes ? +form.read_minutes : null,
+      position_label: form.position_label || null, featured: form.featured,
+      metrics: cleanMetrics.length ? cleanMetrics : null,
+      pdf_url,
+    });
     setUploading(false);
     onClose();
   };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 540, maxHeight: "90vh", overflow: "auto" }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>New Investment Memo</h3>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 640, maxHeight: "90vh", overflow: "auto" }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>New Research Piece</h3>
         <div style={{ display: "grid", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. MSFT" /></div>
             <div><label style={labelStyle}>Type</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.type} onChange={handle("type")}>
-                <option value="memo">Full-Length Memo</option><option value="thesis">Investment Thesis</option>
+                <option value="memo">Investment Memo</option><option value="thesis">Position Thesis</option>
               </select>
             </div>
             <div><label style={labelStyle}>Status</label>
@@ -377,13 +454,45 @@ function AddMemoForm({ onAdd, onClose }) {
               </select>
             </div>
           </div>
-          <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={handle("title")} placeholder="Investment thesis title" /></div>
-          <div><label style={labelStyle}>Thesis</label><textarea style={{ ...inputStyle, height: 180, resize: "vertical" }} value={form.thesis} onChange={handle("thesis")} placeholder="Bull case, key risks, catalysts, valuation rationale..." /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div><label style={labelStyle}>Subtype</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.subtype} onChange={handle("subtype")}>
+                {SUBTYPES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div><label style={labelStyle}>Sector</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.sector} onChange={handle("sector")}>
+                {SECTORS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <div><label style={labelStyle}>Pages</label><input style={inputStyle} type="number" value={form.pages} onChange={handle("pages")} placeholder="14" /></div>
+            <div><label style={labelStyle}>Read Minutes</label><input style={inputStyle} type="number" value={form.read_minutes} onChange={handle("read_minutes")} placeholder="22" /></div>
+            <div><label style={labelStyle}>Position Label</label><input style={inputStyle} value={form.position_label} onChange={handle("position_label")} placeholder="Long $UNH" /></div>
+          </div>
+          <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={handle("title")} placeholder="Title" /></div>
+          <div><label style={labelStyle}>Description / Thesis</label><textarea style={{ ...inputStyle, height: 140, resize: "vertical" }} value={form.thesis} onChange={handle("thesis")} placeholder="Short description shown on the card..." /></div>
+          <div>
+            <label style={labelStyle}>Featured Metrics (optional — shown on featured card)</label>
+            <div style={{ display: "grid", gap: 8 }}>
+              {metrics.map((m, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input style={inputStyle} value={m.label} onChange={(e) => updateMetric(i, "label", e.target.value)} placeholder="Label" />
+                  <input style={inputStyle} value={m.value} onChange={(e) => updateMetric(i, "value", e.target.value)} placeholder="Value" />
+                </div>
+              ))}
+            </div>
+          </div>
           <div><label style={labelStyle}>PDF (optional)</label><input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} style={{ ...inputStyle, padding: 8 }} /></div>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, cursor: "pointer" }}>
+            <input type="checkbox" checked={form.featured} onChange={handle("featured")} />
+            Mark as featured (shown at top of Analysis)
+          </label>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
-          <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1 }}>{uploading ? "Uploading..." : "Save Memo"}</button>
+          <button onClick={submit} disabled={uploading} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: uploading ? "wait" : "pointer", fontWeight: 600, opacity: uploading ? 0.6 : 1, letterSpacing: 0.3 }}>{uploading ? "Uploading..." : "Save"}</button>
         </div>
       </div>
     </div>
@@ -505,7 +614,8 @@ export default function PortfolioDashboard() {
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showAddMemo, setShowAddMemo] = useState(false);
-  const [memoSubTab, setMemoSubTab] = useState("memo");
+  const [memoSubTab, setMemoSubTab] = useState("all");
+  const [memoSectorFilter, setMemoSectorFilter] = useState("all");
   const [showLogin, setShowLogin] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [benchmarkRange, setBenchmarkRange] = useState("3mo");
@@ -563,6 +673,10 @@ export default function PortfolioDashboard() {
           id: m.id, ticker: m.ticker, title: m.title,
           thesis: m.thesis, date: m.date, status: m.status,
           type: m.type || "thesis", pdf_url: m.pdf_url || null,
+          subtype: m.subtype || null, sector: m.sector || null,
+          pages: m.pages || null, read_minutes: m.read_minutes || null,
+          position_label: m.position_label || null, featured: !!m.featured,
+          metrics: m.metrics || null,
         }));
 
         setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades } });
@@ -626,6 +740,10 @@ export default function PortfolioDashboard() {
       portfolio_id: portfolioId, ticker: m.ticker, title: m.title,
       thesis: m.thesis, date: m.date, status: m.status, type: m.type,
       pdf_url: m.pdf_url || null,
+      subtype: m.subtype || null, sector: m.sector || null,
+      pages: m.pages || null, read_minutes: m.read_minutes || null,
+      position_label: m.position_label || null, featured: !!m.featured,
+      metrics: m.metrics || null,
     }).select().single();
     setMemos(prev => [{ ...m, id: data.id }, ...prev]);
   };
@@ -759,34 +877,86 @@ export default function PortfolioDashboard() {
         )}
 
         {/* ANALYSIS TAB */}
-        {activeTab === 1 && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <div>
-                <h2 style={{ margin: 0, color: COLORS.text, fontSize: 32, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.5 }}>Independent Analysis</h2>
-                <p style={{ margin: "8px 0 0", color: COLORS.textSub, fontSize: 15, fontFamily: SERIF, fontStyle: "italic" }}>Original investment research and financial analysis.</p>
-              </div>
-              {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.accent, color: COLORS.white, border: `1px solid ${COLORS.accent}` }}>+ New Memo</button>}
-            </div>
-            {[
-              { key: "memo", heading: "Full-Length Memos", emptyText: "No full-length memos yet." },
-              { key: "thesis", heading: "Investment Theses", emptyText: "No investment theses yet." },
-            ].map(section => {
-              const filtered = memos.filter(m => (m.type || "thesis") === section.key);
-              return (
-                <div key={section.key} style={{ marginBottom: 40 }}>
-                  <h3 style={{ margin: "0 0 16px", color: COLORS.text, fontSize: 24, fontFamily: SERIF, fontWeight: 600, borderBottom: `2px solid ${COLORS.accent}`, paddingBottom: 10 }}>{section.heading}</h3>
-                  {filtered.map(m => <MemoCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
-                  {!filtered.length && (
-                    <Card style={{ textAlign: "center", padding: 40 }}>
-                      <div style={{ color: COLORS.textSub, fontSize: 14 }}>{section.emptyText}</div>
-                    </Card>
-                  )}
+        {activeTab === 1 && (() => {
+          const featured = memos.find(m => m.featured) || null;
+          const sectorsInUse = Array.from(new Set(memos.map(m => m.sector).filter(Boolean)));
+          const sectorMatch = (m) => memoSectorFilter === "all" || m.sector === memoSectorFilter;
+          const typeMatch = (m, t) => memoSubTab === "all" || memoSubTab === t;
+          const memoList = memos.filter(m => (m.type || "thesis") === "memo" && sectorMatch(m) && typeMatch(m, "memo"));
+          const thesisList = memos.filter(m => (m.type || "thesis") === "thesis" && sectorMatch(m) && typeMatch(m, "thesis"));
+          const showMemos = memoSubTab === "all" || memoSubTab === "memo";
+          const showTheses = memoSubTab === "all" || memoSubTab === "thesis";
+          const subTabStyle = (active) => ({
+            padding: "10px 4px", marginRight: 28, background: "transparent", border: "none",
+            borderBottom: active ? `2px solid ${COLORS.accent}` : "2px solid transparent",
+            color: active ? COLORS.text : COLORS.textSub, fontWeight: active ? 700 : 500,
+            fontSize: 15, fontFamily: FONT, cursor: "pointer",
+          });
+          const pillStyle = (active) => ({
+            padding: "6px 14px", borderRadius: 999, border: `1px solid ${active ? COLORS.accent : COLORS.gray200}`,
+            background: active ? COLORS.accent : COLORS.white,
+            color: active ? COLORS.white : COLORS.textSub,
+            fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONT, letterSpacing: 0.3,
+          });
+          return (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Research</div>
+                  <h2 style={{ margin: 0, color: COLORS.text, fontSize: 38, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.7, lineHeight: 1.1 }}>Independent analysis</h2>
+                  <p style={{ margin: "10px 0 0", color: COLORS.textSub, fontSize: 16, fontFamily: SERIF, fontStyle: "italic" }}>Original equity research and position rationales.</p>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.white, color: COLORS.text, border: `1px solid ${COLORS.gray300}` }}>+ New piece</button>}
+              </div>
+
+              <div style={{ borderTop: `1px solid ${COLORS.gray200}`, marginTop: 24, marginBottom: 24 }} />
+
+              {featured && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Featured</div>
+                  <FeaturedCard memo={featured} onDelete={deleteMemo} isAdmin={isAdmin} />
+                </>
+              )}
+
+              <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${COLORS.gray200}`, marginBottom: 18 }}>
+                {[["all","All research"],["memo","Memos"],["thesis","Theses"]].map(([val, label]) => (
+                  <button key={val} onClick={() => setMemoSubTab(val)} style={subTabStyle(memoSubTab === val)}>{label}</button>
+                ))}
+              </div>
+
+              {sectorsInUse.length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
+                  <button onClick={() => setMemoSectorFilter("all")} style={pillStyle(memoSectorFilter === "all")}>All sectors</button>
+                  {sectorsInUse.map(s => (
+                    <button key={s} onClick={() => setMemoSectorFilter(s)} style={pillStyle(memoSectorFilter === s)}>{s}</button>
+                  ))}
+                </div>
+              )}
+
+              {showMemos && (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `1px solid ${COLORS.gray200}`, paddingBottom: 8, marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Investment memos</h3>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.accent }}>{memoList.length}</span>
+                  </div>
+                  {memoList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
+                  {!memoList.length && <div style={{ color: COLORS.textSub, fontSize: 14, padding: "20px 4px" }}>No memos match this filter.</div>}
+                </div>
+              )}
+
+              {showTheses && (
+                <div style={{ marginBottom: 36 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: `1px solid ${COLORS.gray200}`, paddingBottom: 8, marginBottom: 16 }}>
+                    <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Position theses</h3>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.accent }}>{thesisList.length}</span>
+                  </div>
+                  {thesisList.map(m => <ResearchCard key={m.id} memo={m} onDelete={deleteMemo} isAdmin={isAdmin} />)}
+                  {!thesisList.length && <div style={{ color: COLORS.textSub, fontSize: 14, padding: "20px 4px" }}>No theses match this filter.</div>}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modals */}
