@@ -407,7 +407,7 @@ function ResearchCard({ memo, onDelete, onEdit, isAdmin }) {
               <p style={{ margin: 0, color: COLORS.textSub, fontSize: 14, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{memo.kicker || memo.thesis}</p>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0, minWidth: 110 }}>
-              {memo.recommendation && <div style={{ fontSize: 13, fontFamily: SANS, fontWeight: 700, color: positionColor(memo.recommendation), letterSpacing: 0.5, textTransform: "uppercase" }}>{memo.recommendation}{memo.ticker ? ` $${memo.ticker}` : ""}</div>}
+              {memo.recommendation && <div style={{ fontSize: 13, fontFamily: FONT, fontWeight: 700, color: positionColor(memo.recommendation), letterSpacing: 0.5, textTransform: "uppercase" }}>{memo.recommendation}{memo.ticker ? ` $${memo.ticker}` : ""}</div>}
               {!memo.recommendation && memo.position_label && <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: positionColor(memo.position_label), fontWeight: 600 }}>{memo.position_label}</div>}
               <div style={{ fontSize: 12, color: COLORS.textSub, marginTop: 4 }}>{fmtMonthYear(memo.date)}</div>
             </div>
