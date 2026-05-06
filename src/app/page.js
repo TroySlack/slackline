@@ -387,29 +387,39 @@ const positionColor = (label) => {
 
 function ResearchCard({ memo, onDelete, onEdit, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
-  if (memo.isMdx && memo.slug) {
+  // If memo has a slug, the card links to the research detail page.
+  // Admin still sees Edit/Delete buttons inside the card (they don't trigger navigation).
+  if (memo.slug) {
     return (
-      <a href={`/research/${memo.slug}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-        <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.15s" }}
-             onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.accent}
-             onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}>
+      <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, transition: "border-color 0.15s", position: "relative" }}
+           onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.accent}
+           onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}>
+        <a href={`/research/${memo.slug}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+                {memo.subtype && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1 }}>{memo.subtype}</span>}
                 {memo.sector && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "3px 9px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.sector}</span>}
                 {memo.read_minutes ? <span style={{ fontSize: 12, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.5 }}>{memo.read_minutes} min read</span> : null}
                 {memo.ticker && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub }}>${memo.ticker}</span>}
               </div>
               <h4 style={{ margin: "0 0 6px", fontSize: 19, color: COLORS.text, fontFamily: SERIF, fontWeight: 700, lineHeight: 1.3 }}>{memo.title}</h4>
-              <p style={{ margin: 0, color: COLORS.textSub, fontSize: 14, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{memo.thesis}</p>
+              <p style={{ margin: 0, color: COLORS.textSub, fontSize: 14, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{memo.kicker || memo.thesis}</p>
             </div>
             <div style={{ textAlign: "right", flexShrink: 0, minWidth: 110 }}>
-              {memo.position_label && <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: positionColor(memo.position_label), fontWeight: 600 }}>{memo.position_label}</div>}
+              {memo.recommendation && <div style={{ fontSize: 13, fontFamily: SANS, fontWeight: 700, color: positionColor(memo.recommendation), letterSpacing: 0.5, textTransform: "uppercase" }}>{memo.recommendation}{memo.ticker ? ` $${memo.ticker}` : ""}</div>}
+              {!memo.recommendation && memo.position_label && <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: positionColor(memo.position_label), fontWeight: 600 }}>{memo.position_label}</div>}
               <div style={{ fontSize: 12, color: COLORS.textSub, marginTop: 4 }}>{fmtMonthYear(memo.date)}</div>
             </div>
           </div>
-        </div>
-      </a>
+        </a>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLORS.gray200}` }}>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(memo); }} style={{ padding: "5px 12px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 11 }}>Edit</button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(memo.id); }} style={{ padding: "5px 12px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 11 }}>Delete</button>
+          </div>
+        )}
+      </div>
     );
   }
   return (
@@ -489,24 +499,41 @@ function FeaturedCard({ memo, onDelete, onEdit, isAdmin }) {
 const SUBTYPES = ["Initiation Memo", "Pass Note", "Update Memo", "Thesis Update", "Position Thesis", "Sector Note"];
 const SECTORS_LIST = ["Health Care","Financials","Consumer Staples","Industrials","Tech","Energy","Materials","Utilities","Real Estate","Communication Services","Consumer Discretionary","Diversified"];
 
+const slugify = (s) => (s || "")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "")
+  .slice(0, 80);
+
 function AddMemoForm({ onAdd, onClose, initial }) {
   const isEdit = !!initial;
   const [form, setForm] = useState({
-    ticker: initial?.ticker || "", title: initial?.title || "", thesis: initial?.thesis || "",
+    ticker: initial?.ticker || "", title: initial?.title || "",
+    kicker: initial?.kicker || "", thesis: initial?.thesis || "",
+    slug: initial?.slug || "",
     status: initial?.status || "Active", type: initial?.type || "memo",
+    recommendation: initial?.recommendation || "",
     subtype: initial?.subtype || "", sector: initial?.sector || "",
     pages: initial?.pages ?? "", read_minutes: initial?.read_minutes ?? "",
     position_label: initial?.position_label || "", featured: !!initial?.featured,
+    data_as_of: initial?.data_as_of ? String(initial.data_as_of).slice(0,10) : "",
   });
   const initialMetrics = Array.isArray(initial?.metrics) && initial.metrics.length
-    ? [...initial.metrics, ...Array(Math.max(0, 4 - initial.metrics.length)).fill({ label: "", value: "" })].slice(0, 4)
-    : [{ label: "Recommendation", value: "" }, { label: "Adj. ROIC", value: "" }, { label: "Implied IRR", value: "" }, { label: "Conviction", value: "" }];
+    ? initial.metrics.map(m => ({ label: m.label || "", value: m.value || "", highlight: m.highlight || "" }))
+    : [
+      { label: "P/E (TTM)", value: "", highlight: "" },
+      { label: "5y avg P/E", value: "", highlight: "" },
+      { label: "FCF margin", value: "", highlight: "" },
+      { label: "ROIC", value: "", highlight: "" },
+    ];
   const [metrics, setMetrics] = useState(initialMetrics);
   const [pdfFile, setPdfFile] = useState(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [uploading, setUploading] = useState(false);
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
   const updateMetric = (i, k, v) => setMetrics(prev => prev.map((m, idx) => idx === i ? { ...m, [k]: v } : m));
+  const addMetricRow = () => setMetrics(prev => prev.length >= 7 ? prev : [...prev, { label: "", value: "", highlight: "" }]);
+  const removeMetricRow = (i) => setMetrics(prev => prev.filter((_, idx) => idx !== i));
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
   const submit = async () => {
@@ -519,15 +546,22 @@ function AddMemoForm({ onAdd, onClose, initial }) {
       if (error) { alert("PDF upload failed: " + error.message); setUploading(false); return; }
       pdf_url = supabase.storage.from("memos").getPublicUrl(path).data.publicUrl;
     }
-    const cleanMetrics = metrics.filter(m => m.label && m.value);
+    const cleanMetrics = metrics
+      .filter(m => m.label && m.value)
+      .map(m => ({ label: m.label, value: m.value, ...(m.highlight ? { highlight: m.highlight } : {}) }));
     await onAdd({
       ticker: form.ticker ? form.ticker.toUpperCase() : null,
-      title: form.title || null, thesis: form.thesis || null,
+      title: form.title || null,
+      kicker: form.kicker || null,
+      thesis: form.thesis || null,
+      slug: form.slug ? slugify(form.slug) : null,
       date: isEdit ? initial.date : new Date().toISOString().slice(0,10),
       status: form.status, type: form.type,
+      recommendation: form.recommendation || null,
       subtype: form.subtype || null, sector: form.sector || null,
       pages: form.pages ? +form.pages : null, read_minutes: form.read_minutes ? +form.read_minutes : null,
       position_label: form.position_label || null, featured: form.featured,
+      data_as_of: form.data_as_of || null,
       metrics: cleanMetrics.length ? cleanMetrics : null,
       pdf_url,
     });
@@ -539,11 +573,30 @@ function AddMemoForm({ onAdd, onClose, initial }) {
       <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 640, maxHeight: "90vh", overflow: "auto" }}>
         <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>{isEdit ? "Edit Research Piece" : "New Research Piece"}</h3>
         <div style={{ display: "grid", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. MSFT" /></div>
+          <div><label style={labelStyle}>Headline (Title)</label><input style={inputStyle} value={form.title} onChange={handle("title")} placeholder="Microsoft's investment in AI capex to drive future growth" /></div>
+          <div>
+            <label style={labelStyle}>Slug (URL)</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input style={inputStyle} value={form.slug} onChange={handle("slug")} placeholder="microsoft-ai-capex-thesis" />
+              <button type="button" onClick={() => setForm(f => ({ ...f, slug: slugify(f.title) }))} style={{ padding: "10px 14px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.textSub, cursor: "pointer", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" }}>From title</button>
+            </div>
+            {form.slug && <div style={{ fontSize: 11, color: COLORS.textSub, marginTop: 4 }}>Memo will live at /research/{slugify(form.slug)}</div>}
+          </div>
+          <div><label style={labelStyle}>Kicker (italic subtitle below headline)</label><textarea style={{ ...inputStyle, height: 60, resize: "vertical" }} value={form.kicker} onChange={handle("kicker")} placeholder="Markets are unjustly punishing the company for short-term capex…" /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
+            <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="MSFT" /></div>
             <div><label style={labelStyle}>Type</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.type} onChange={handle("type")}>
-                <option value="memo">Investment Memo</option><option value="thesis">Position Thesis</option>
+                <option value="memo">Memo</option><option value="thesis">Thesis</option><option value="pass">Pass</option>
+              </select>
+            </div>
+            <div><label style={labelStyle}>Recommendation</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.recommendation} onChange={handle("recommendation")}>
+                <option value="">— None —</option>
+                <option value="Long">Long</option>
+                <option value="Pass">Pass</option>
+                <option value="Watchlist">Watchlist</option>
+                <option value="Monitor">Monitor</option>
               </select>
             </div>
             <div><label style={labelStyle}>Status</label>
@@ -553,39 +606,48 @@ function AddMemoForm({ onAdd, onClose, initial }) {
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div><label style={labelStyle}>Subtype</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.subtype} onChange={handle("subtype")}>
-                <option value="">— None —</option>
-                {SUBTYPES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
             <div><label style={labelStyle}>Sector</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.sector} onChange={handle("sector")}>
                 <option value="">— None —</option>
                 {SECTORS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            <div><label style={labelStyle}>Subtype</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.subtype} onChange={handle("subtype")}>
+                <option value="">— None —</option>
+                {SUBTYPES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Pages</label><input style={inputStyle} type="number" value={form.pages} onChange={handle("pages")} placeholder="14" /></div>
-            <div><label style={labelStyle}>Read Minutes</label><input style={inputStyle} type="number" value={form.read_minutes} onChange={handle("read_minutes")} placeholder="22" /></div>
-            <div><label style={labelStyle}>Position Label</label><input style={inputStyle} value={form.position_label} onChange={handle("position_label")} placeholder="Long $UNH" /></div>
+            <div><label style={labelStyle}>Read Minutes</label><input style={inputStyle} type="number" value={form.read_minutes} onChange={handle("read_minutes")} placeholder="7" /></div>
+            <div><label style={labelStyle}>Data as of</label><input style={inputStyle} type="date" value={form.data_as_of} onChange={handle("data_as_of")} /></div>
+            <div><label style={labelStyle}>Position Label</label><input style={inputStyle} value={form.position_label} onChange={handle("position_label")} placeholder="(legacy)" /></div>
           </div>
-          <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={handle("title")} placeholder="Title" /></div>
-          <div><label style={labelStyle}>Description / Thesis</label><textarea style={{ ...inputStyle, height: 140, resize: "vertical" }} value={form.thesis} onChange={handle("thesis")} placeholder="Short description shown on the card..." /></div>
+          <div><label style={labelStyle}>Card description (1-2 sentences shown on Analysis card)</label><textarea style={{ ...inputStyle, height: 80, resize: "vertical" }} value={form.thesis} onChange={handle("thesis")} placeholder="Short summary used on Analysis page cards. Full content lives in the PDF." /></div>
           <div>
-            <label style={labelStyle}>Featured Metrics (optional — shown on featured card)</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Key Data (5-7 cells, shown on memo page)</label>
+              <button type="button" onClick={addMetricRow} disabled={metrics.length >= 7} style={{ fontSize: 11, color: COLORS.accent, background: "none", border: "none", cursor: metrics.length >= 7 ? "not-allowed" : "pointer", fontWeight: 700, opacity: metrics.length >= 7 ? 0.4 : 1 }}>+ Add row</button>
+            </div>
             <div style={{ display: "grid", gap: 8 }}>
               {metrics.map((m, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px 28px", gap: 8, alignItems: "center" }}>
                   <input style={inputStyle} value={m.label} onChange={(e) => updateMetric(i, "label", e.target.value)} placeholder="Label" />
                   <input style={inputStyle} value={m.value} onChange={(e) => updateMetric(i, "value", e.target.value)} placeholder="Value" />
+                  <select style={{ ...inputStyle, cursor: "pointer" }} value={m.highlight || ""} onChange={(e) => updateMetric(i, "highlight", e.target.value)}>
+                    <option value="">Neutral</option>
+                    <option value="below">Below (green)</option>
+                    <option value="above">Above (burgundy)</option>
+                  </select>
+                  <button type="button" onClick={() => removeMetricRow(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 18, fontWeight: 700, padding: 0 }}>×</button>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <label style={labelStyle}>PDF (optional)</label>
+            <label style={labelStyle}>PDF (the memo document)</label>
             {isEdit && initial.pdf_url && !removePdf && !pdfFile && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, fontSize: 13, color: COLORS.textSub }}>
                 <a href={initial.pdf_url} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.accent }}>Current PDF</a>
@@ -876,14 +938,8 @@ function InvestmentMandate() {
   );
 }
 
-function NewHoldingsTable({ holdings, memos, mdxByTicker, onEdit, onDelete, onResearchClick, isAdmin }) {
+function NewHoldingsTable({ holdings, memos, memoByTickerWithSlug, onEdit, onDelete, isAdmin }) {
   const totalValue = holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0);
-  const memoByTicker = new Map();
-  memos.forEach(m => {
-    if (!m.ticker) return;
-    const existing = memoByTicker.get(m.ticker);
-    if (!existing || (m.type === "memo" && existing.type !== "memo")) memoByTicker.set(m.ticker, m);
-  });
 
   const TierBadge = ({ tier }) => (
     <span style={{
@@ -896,28 +952,16 @@ function NewHoldingsTable({ holdings, memos, mdxByTicker, onEdit, onDelete, onRe
 
   const ResearchBtn = ({ ticker }) => {
     const t = (ticker || "").toUpperCase();
-    const mdx = mdxByTicker?.[t];
-    const supabaseMemo = memoByTicker.get(t);
-    if (mdx) {
-      const label = (mdx.type === "thesis" || mdx.type === "pass") ? (mdx.type === "thesis" ? "Thesis" : "Pass") : "Memo";
+    const memo = memoByTickerWithSlug?.[t];
+    if (memo) {
+      const label = memo.type === "memo" ? "Memo" : (memo.type === "pass" ? "Pass" : "Thesis");
       return (
         <a
-          href={`/research/${mdx.slug}`}
+          href={`/research/${memo.slug}`}
           onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.accent; e.currentTarget.style.color = COLORS.white; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.accent; }}
           style={{ padding: "4px 12px", borderRadius: 2, border: `0.5px solid ${COLORS.accent}`, background: "transparent", color: COLORS.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, transition: "all 0.15s", textDecoration: "none", display: "inline-block" }}
         >{label}</a>
-      );
-    }
-    if (supabaseMemo) {
-      const label = supabaseMemo.type === "memo" ? "Memo" : "Thesis";
-      return (
-        <button
-          onClick={() => onResearchClick(supabaseMemo.ticker)}
-          onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.accent; e.currentTarget.style.color = COLORS.white; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.accent; }}
-          style={{ padding: "4px 12px", borderRadius: 2, border: `0.5px solid ${COLORS.accent}`, background: "transparent", color: COLORS.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, transition: "all 0.15s" }}
-        >{label}</button>
       );
     }
     return (
@@ -984,7 +1028,6 @@ export default function PortfolioDashboard() {
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [chartRange, setChartRange] = useState("SI");
   const [memoTickerFilter, setMemoTickerFilter] = useState(null);
-  const [mdxResearch, setMdxResearch] = useState([]);
   const [showAddMemo, setShowAddMemo] = useState(false);
   const [editingMemo, setEditingMemo] = useState(null);
   const [memoSubTab, setMemoSubTab] = useState("all");
@@ -1018,12 +1061,6 @@ export default function PortfolioDashboard() {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    fetch("/api/research-index")
-      .then(r => r.ok ? r.json() : { items: [] })
-      .then(d => setMdxResearch(d.items || []))
-      .catch(() => setMdxResearch([]));
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1082,6 +1119,9 @@ export default function PortfolioDashboard() {
           pages: m.pages || null, read_minutes: m.read_minutes || null,
           position_label: m.position_label || null, featured: !!m.featured,
           metrics: m.metrics || null,
+          slug: m.slug || null, kicker: m.kicker || null,
+          recommendation: m.recommendation || null,
+          data_as_of: m.data_as_of || null,
         }));
 
         setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades, inceptionDate: pf.inception_date || null, inceptionValue: pf.inception_value ? +pf.inception_value : null } });
@@ -1117,9 +1157,13 @@ export default function PortfolioDashboard() {
   const benchmarkData = useBenchmark(benchmarkRange, chartStart);
   const fundHistory = useFundHistory(liveHoldings, chartStart);
 
-  // Build ticker → MDX research map (for holdings table Research button + analysis filtering)
-  const mdxByTicker = mdxResearch.reduce((acc, r) => {
-    if (r.ticker) acc[r.ticker.toUpperCase()] = r;
+  // Build ticker → memo map for holdings Research button (only memos with a slug get a link)
+  const memoByTickerWithSlug = memos.reduce((acc, m) => {
+    if (!m.slug || !m.ticker) return acc;
+    const t = m.ticker.toUpperCase();
+    const existing = acc[t];
+    // Prefer "memo" type over "thesis" if both exist
+    if (!existing || (m.type === "memo" && existing.type !== "memo")) acc[t] = m;
     return acc;
   }, {});
 
@@ -1179,6 +1223,9 @@ export default function PortfolioDashboard() {
       pages: m.pages || null, read_minutes: m.read_minutes || null,
       position_label: m.position_label || null, featured: !!m.featured,
       metrics: m.metrics || null,
+      slug: m.slug || null, kicker: m.kicker || null,
+      recommendation: m.recommendation || null,
+      data_as_of: m.data_as_of || null,
     }).select().single();
     setMemos(prev => [{ ...m, id: data.id }, ...prev]);
   };
@@ -1196,6 +1243,9 @@ export default function PortfolioDashboard() {
       pages: m.pages, read_minutes: m.read_minutes,
       position_label: m.position_label, featured: m.featured,
       metrics: m.metrics, pdf_url: m.pdf_url,
+      slug: m.slug || null, kicker: m.kicker || null,
+      recommendation: m.recommendation || null,
+      data_as_of: m.data_as_of || null,
     }).eq("id", id).select().single();
     setMemos(prev => prev.map(x => x.id === id ? {
       ...x, ...m,
@@ -1349,18 +1399,9 @@ export default function PortfolioDashboard() {
                 <NewHoldingsTable
                   holdings={liveHoldings}
                   memos={memos}
-                  mdxByTicker={mdxByTicker}
+                  memoByTickerWithSlug={memoByTickerWithSlug}
                   onEdit={(h) => setEditingHolding(h)}
                   onDelete={deleteHolding}
-                  onResearchClick={(ticker) => {
-                    setActiveTab(1);
-                    setMemoTickerFilter(ticker);
-                    if (typeof window !== "undefined") {
-                      const u = new URL(window.location.href);
-                      u.searchParams.set("ticker", ticker);
-                      window.history.pushState({}, "", u);
-                    }
-                  }}
                   isAdmin={isAdmin}
                 />
               </div>
@@ -1370,30 +1411,7 @@ export default function PortfolioDashboard() {
 
         {/* ANALYSIS TAB */}
         {activeTab === 1 && (() => {
-          // Convert MDX research items to memo-like shape so they render in the same lists
-          const mdxAsMemos = mdxResearch.map(r => ({
-            id: "mdx:" + r.slug,
-            slug: r.slug,
-            isMdx: true,
-            ticker: r.ticker,
-            title: r.headline,
-            thesis: r.kicker,
-            date: r.published,
-            status: "Active",
-            type: r.type === "thesis" || r.type === "pass" ? r.type : "memo",
-            sector: r.sector,
-            featured: false, // MDX items aren't featured by frontmatter; legacy supabase only
-            position_label: r.recommendation && r.ticker ? `${r.recommendation} $${r.ticker}` : (r.recommendation || null),
-            subtype: null, pdf_url: null, pages: null, read_minutes: r.readTime || null, metrics: null,
-          }));
-          // Public viewers see MDX-takes-precedence (Supabase duplicates hidden).
-          // Admin sees both, so legacy Supabase memos can still be edited/deleted.
-          const mdxTickers = new Set(mdxAsMemos.map(m => (m.ticker || "").toUpperCase()).filter(Boolean));
-          const supabaseList = isAdmin
-            ? memos
-            : memos.filter(m => !mdxTickers.has((m.ticker || "").toUpperCase()));
-          const allMemos = [...mdxAsMemos, ...supabaseList];
-
+          const allMemos = memos;
           const featuredList = allMemos.filter(m => m.featured).slice(0, 2);
           const sectorsInUse = Array.from(new Set(allMemos.map(m => m.sector).filter(Boolean)));
           const sectorMatch = (m) => memoSectorFilter === "all" || m.sector === memoSectorFilter;

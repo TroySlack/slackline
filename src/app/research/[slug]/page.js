@@ -1,8 +1,6 @@
-import { MDXRemote } from "next-mdx-remote/rsc";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getResearchBySlug, getResearchSlugs } from "@/lib/research";
-import { mdxComponents } from "../mdx-components";
+import { createClient } from "@supabase/supabase-js";
 
 const BURGUNDY = "#8B1A1A";
 const GOLD = "#C9A84C";
@@ -14,15 +12,28 @@ const NEAR_BLACK = "#1A1A1A";
 const SERIF = "'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif";
 const SANS = "'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-export async function generateStaticParams() {
-  return getResearchSlugs().map((slug) => ({ slug }));
+// Server-side supabase client (public anon key, public read RLS)
+function supa() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false } }
+  );
+}
+
+async function fetchMemoBySlug(slug) {
+  try {
+    const { data } = await supa().from("memos").select("*").eq("slug", slug).maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }) {
-  const item = getResearchBySlug(params.slug);
-  if (!item) return { title: "Research not found" };
-  const { headline, kicker } = item.frontmatter;
-  return { title: `${headline} — Slackline Capital`, description: kicker };
+  const memo = await fetchMemoBySlug(params.slug);
+  if (!memo) return { title: "Research not found" };
+  return { title: `${memo.title} — Slackline Capital`, description: memo.kicker || memo.thesis || "" };
 }
 
 const recColor = (rec) => {
@@ -49,16 +60,18 @@ const cellHighlightColor = (h) => {
 };
 
 export default async function ResearchPage({ params }) {
-  const item = getResearchBySlug(params.slug);
-  if (!item) notFound();
+  const memo = await fetchMemoBySlug(params.slug);
+  if (!memo) notFound();
 
-  const { frontmatter: f, content } = item;
-  const keyData = Array.isArray(f.keyData) ? f.keyData.slice(0, 7) : [];
-  const typeLabel = (f.type || "memo").charAt(0).toUpperCase() + (f.type || "memo").slice(1);
+  const keyData = Array.isArray(memo.metrics) ? memo.metrics.slice(0, 7) : [];
+  const typeRaw = memo.type || "memo";
+  const typeLabel = typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1);
+  const recommendation = memo.recommendation || null;
+  const rationale = memo.position_label && !recommendation ? memo.position_label : null;
 
   return (
     <div style={{ background: CREAM, minHeight: "100vh", fontFamily: SERIF, color: NEAR_BLACK }}>
-      {/* Brand strip + minimal header */}
+      {/* Brand strip + header */}
       <div style={{ background: BURGUNDY, height: 4 }} />
       <div style={{ borderBottom: "0.5px solid rgba(139,26,26,0.5)", padding: "0 40px", background: CREAM }}>
         <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "baseline", justifyContent: "space-between", height: 64 }}>
@@ -69,36 +82,34 @@ export default async function ResearchPage({ params }) {
         </div>
       </div>
 
-      {/* Content column */}
       <article style={{ maxWidth: 680, margin: "0 auto", padding: "56px 24px 80px" }}>
         {/* Breadcrumb */}
         <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BURGUNDY, opacity: 0.85, marginBottom: 28 }}>
-          Research / {typeLabel}{f.sector ? ` / ${f.sector}` : ""}
+          Research / {typeLabel}{memo.sector ? ` / ${memo.sector}` : ""}
         </div>
 
-        {/* Headline */}
-        <h1 style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, lineHeight: 1.15, letterSpacing: -0.6, color: NEAR_BLACK, margin: 0 }}>{f.headline}</h1>
+        <h1 style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, lineHeight: 1.15, letterSpacing: -0.6, color: NEAR_BLACK, margin: 0 }}>{memo.title}</h1>
 
-        {/* Kicker */}
-        {f.kicker && (
-          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, lineHeight: 1.45, color: SUB, margin: "14px 0 0" }}>{f.kicker}</p>
+        {memo.kicker && (
+          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, lineHeight: 1.45, color: SUB, margin: "14px 0 0" }}>{memo.kicker}</p>
         )}
 
-        {/* Burgundy rule */}
         <hr style={{ border: 0, borderTop: `0.5px solid ${BURGUNDY}`, margin: "24px 0 16px" }} />
 
-        {/* Byline row */}
+        {/* Byline */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
           <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: SUB }}>
-            Slackline Capital{f.published ? ` · Published ${fmtDate(f.published)}` : ""}{f.readTime ? ` · ${f.readTime} min read` : ""}
+            Slackline Capital{memo.date ? ` · Published ${fmtDate(memo.date)}` : ""}{memo.read_minutes ? ` · ${memo.read_minutes} min read` : ""}
           </div>
-          {f.recommendation && (
+          {(recommendation || rationale) && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "5px 12px", border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff" }}>
-              <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: recColor(f.recommendation) }}>{f.recommendation}</span>
-              {f.rationale && (
+              {recommendation && (
+                <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: recColor(recommendation) }}>{recommendation}</span>
+              )}
+              {rationale && (
                 <>
-                  <span style={{ width: 1, height: 12, background: "rgba(139,26,26,0.3)" }} />
-                  <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: SUB }}>{f.rationale}</span>
+                  {recommendation && <span style={{ width: 1, height: 12, background: "rgba(139,26,26,0.3)" }} />}
+                  <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: SUB }}>{rationale}</span>
                 </>
               )}
             </div>
@@ -117,17 +128,29 @@ export default async function ResearchPage({ params }) {
           </div>
         )}
 
-        {/* Body MDX */}
-        <div className="research-body">
-          <MDXRemote source={content} components={mdxComponents} />
-        </div>
+        {/* PDF embed (primary content) */}
+        {memo.pdf_url ? (
+          <div style={{ border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff", overflow: "hidden", marginBottom: 36 }}>
+            <iframe
+              src={`${memo.pdf_url}#toolbar=0&navpanes=0`}
+              style={{ width: "100%", height: 900, border: "none", display: "block" }}
+              title={memo.title}
+            />
+          </div>
+        ) : (
+          <div style={{ border: "0.5px dashed rgba(139,26,26,0.4)", padding: 40, textAlign: "center", color: SUB, fontStyle: "italic", fontSize: 14, marginBottom: 36 }}>
+            No memo document attached.
+          </div>
+        )}
 
         {/* Footer */}
-        <hr style={{ border: 0, borderTop: `0.5px solid ${BURGUNDY}`, margin: "56px 0 18px" }} />
+        <hr style={{ border: 0, borderTop: `0.5px solid ${BURGUNDY}`, margin: "20px 0 18px" }} />
         <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: SUB, lineHeight: 1.6, margin: "0 0 14px" }}>
-          Slackline Capital research is published for portfolio transparency.{f.published ? ` Published ${fmtDate(f.published)}.` : ""}{f.dataAsOf ? ` Financial data as of ${fmtDate(f.dataAsOf)}.` : ""} Not investment advice.
+          Slackline Capital research is published for portfolio transparency.{memo.date ? ` Published ${fmtDate(memo.date)}.` : ""}{memo.data_as_of ? ` Financial data as of ${fmtDate(memo.data_as_of)}.` : ""} Not investment advice.
         </p>
-        <a href="#" style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: BURGUNDY, textTransform: "uppercase", letterSpacing: 1.2, textDecoration: "none", borderBottom: `0.5px solid ${BURGUNDY}`, paddingBottom: 1 }}>View as PDF</a>
+        {memo.pdf_url && (
+          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, color: BURGUNDY, textTransform: "uppercase", letterSpacing: 1.2, textDecoration: "none", borderBottom: `0.5px solid ${BURGUNDY}`, paddingBottom: 1 }}>View as PDF</a>
+        )}
       </article>
     </div>
   );
