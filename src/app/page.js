@@ -1005,6 +1005,19 @@ export default function PortfolioDashboard() {
     if (params.get("tab") === "analysis") setActiveTab(1);
   }, []);
 
+  // Keep URL in sync when active tab changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const u = new URL(window.location.href);
+    if (activeTab === 1) u.searchParams.set("tab", "analysis");
+    else u.searchParams.delete("tab");
+    // Drop ticker filter from URL when leaving analysis tab
+    if (activeTab !== 1) u.searchParams.delete("ticker");
+    if (u.toString() !== window.location.href) {
+      window.history.replaceState({}, "", u);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     fetch("/api/research-index")
       .then(r => r.ok ? r.json() : { items: [] })
@@ -1373,10 +1386,13 @@ export default function PortfolioDashboard() {
             position_label: r.recommendation && r.ticker ? `${r.recommendation} $${r.ticker}` : (r.recommendation || null),
             subtype: null, pdf_url: null, pages: null, read_minutes: r.readTime || null, metrics: null,
           }));
-          // Combine — prefer MDX entry over Supabase entry if same ticker (MDX is canonical going forward)
+          // Public viewers see MDX-takes-precedence (Supabase duplicates hidden).
+          // Admin sees both, so legacy Supabase memos can still be edited/deleted.
           const mdxTickers = new Set(mdxAsMemos.map(m => (m.ticker || "").toUpperCase()).filter(Boolean));
-          const filteredSupabase = memos.filter(m => !mdxTickers.has((m.ticker || "").toUpperCase()));
-          const allMemos = [...mdxAsMemos, ...filteredSupabase];
+          const supabaseList = isAdmin
+            ? memos
+            : memos.filter(m => !mdxTickers.has((m.ticker || "").toUpperCase()));
+          const allMemos = [...mdxAsMemos, ...supabaseList];
 
           const featuredList = allMemos.filter(m => m.featured).slice(0, 2);
           const sectorsInUse = Array.from(new Set(allMemos.map(m => m.sector).filter(Boolean)));
