@@ -201,12 +201,29 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
     hedge: !!initial?.hedge,
   });
   const sectors = ["Broad Market","Technology","Healthcare","Financials","Consumer Discretionary","Consumer Staples","Energy","Industrials","Materials","Utilities","Real Estate","Communication Services","Diversified core"];
+  const [fetching, setFetching] = useState(false);
   const handle = (k) => (e) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const fetchPrice = async () => {
+    const t = form.ticker.trim().toUpperCase();
+    if (!t) return;
+    setFetching(true);
+    try {
+      const res = await fetch(`/api/quotes?symbols=${t}`);
+      if (res.ok) {
+        const data = await res.json();
+        const price = data?.quotes?.[t]?.price;
+        if (price) setForm(f => ({ ...f, currentPrice: price.toFixed(2) }));
+      }
+    } catch (e) { /* silent */ }
+    setFetching(false);
+  };
   const submit = () => {
-    if (!form.ticker || !form.shares || !form.costBasis || !form.currentPrice) return;
+    if (!form.ticker || !form.shares || !form.costBasis) return;
+    // If currentPrice is empty, use costBasis as a temporary placeholder — useLiveQuotes will overwrite on next tick
+    const cp = form.currentPrice ? +form.currentPrice : +form.costBasis;
     onAdd({
       ticker: form.ticker.toUpperCase(), shares: +form.shares,
-      costBasis: +form.costBasis, currentPrice: +form.currentPrice,
+      costBasis: +form.costBasis, currentPrice: cp,
       sector: form.sector, pe: form.pe ? +form.pe : null,
       tier: +form.tier || 1, hedge: !!form.hedge,
     });
@@ -219,13 +236,27 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
       <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 480, maxHeight: "90vh", overflow: "auto" }}>
         <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>{isEdit ? "Edit Position" : "Add Position"}</h3>
         <div style={{ display: "grid", gap: 14 }}>
-          <div><label style={labelStyle}>Ticker</label><input style={inputStyle} value={form.ticker} onChange={handle("ticker")} placeholder="e.g. AAPL" /></div>
+          <div>
+            <label style={labelStyle}>Ticker</label>
+            <input
+              style={inputStyle}
+              value={form.ticker}
+              onChange={handle("ticker")}
+              onBlur={fetchPrice}
+              placeholder="e.g. AAPL — current price auto-fills"
+            />
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Shares</label><input style={inputStyle} type="number" value={form.shares} onChange={handle("shares")} /></div>
             <div><label style={labelStyle}>Cost Basis</label><input style={inputStyle} type="number" step="0.01" value={form.costBasis} onChange={handle("costBasis")} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div><label style={labelStyle}>Current Price</label><input style={inputStyle} type="number" step="0.01" value={form.currentPrice} onChange={handle("currentPrice")} /></div>
+            <div>
+              <label style={labelStyle}>
+                Current Price {fetching && <span style={{ marginLeft: 6, fontSize: 10, color: COLORS.accent, textTransform: "none", letterSpacing: 0 }}>fetching…</span>}
+              </label>
+              <input style={inputStyle} type="number" step="0.01" value={form.currentPrice} onChange={handle("currentPrice")} placeholder="Auto-fills from Yahoo" />
+            </div>
             <div><label style={labelStyle}>P/E Ratio</label><input style={inputStyle} type="number" step="0.1" value={form.pe} onChange={handle("pe")} placeholder="Optional" /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
