@@ -917,15 +917,14 @@ export default function PortfolioDashboard() {
 
         {/* ANALYSIS TAB */}
         {activeTab === 1 && (() => {
-          const featured = memos.find(m => m.featured) || null;
+          const featuredList = memos.filter(m => m.featured).slice(0, 2);
           const sectorsInUse = Array.from(new Set(memos.map(m => m.sector).filter(Boolean)));
           const sectorMatch = (m) => memoSectorFilter === "all" || m.sector === memoSectorFilter;
-          const typeMatch = (m, t) => memoSubTab === "all" || memoSubTab === "featured" || memoSubTab === t;
-          const featuredMatch = (m) => memoSubTab !== "featured" || m.featured;
-          const memoList = memos.filter(m => (m.type || "thesis") === "memo" && sectorMatch(m) && typeMatch(m, "memo") && featuredMatch(m));
-          const thesisList = memos.filter(m => (m.type || "thesis") === "thesis" && sectorMatch(m) && typeMatch(m, "thesis") && featuredMatch(m));
-          const showMemos = memoSubTab === "all" || memoSubTab === "memo" || memoSubTab === "featured";
-          const showTheses = memoSubTab === "all" || memoSubTab === "thesis" || memoSubTab === "featured";
+          const typeMatch = (m, t) => memoSubTab === "all" || memoSubTab === t;
+          const memoList = memos.filter(m => (m.type || "thesis") === "memo" && sectorMatch(m) && typeMatch(m, "memo"));
+          const thesisList = memos.filter(m => (m.type || "thesis") === "thesis" && sectorMatch(m) && typeMatch(m, "thesis"));
+          const showMemos = memoSubTab === "all" || memoSubTab === "memo";
+          const showTheses = memoSubTab === "all" || memoSubTab === "thesis";
           const subTabStyle = (active) => ({
             padding: "10px 4px", marginRight: 28, background: "transparent", border: "none",
             borderBottom: active ? `2px solid ${COLORS.accent}` : "2px solid transparent",
@@ -951,15 +950,17 @@ export default function PortfolioDashboard() {
 
               <div style={{ borderTop: `1px solid ${COLORS.gray200}`, marginTop: 24, marginBottom: 24 }} />
 
-              {featured && (
+              {featuredList.length > 0 && (
                 <>
                   <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Featured</div>
-                  <FeaturedCard memo={featured} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />
+                  {featuredList.map(m => (
+                    <FeaturedCard key={m.id} memo={m} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />
+                  ))}
                 </>
               )}
 
               <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${COLORS.gray200}`, marginBottom: 18 }}>
-                {[["all","All research"],["featured","Featured"],["memo","Memos"],["thesis","Theses"]].map(([val, label]) => (
+                {[["all","All research"],["memo","Memos"],["thesis","Theses"]].map(([val, label]) => (
                   <button key={val} onClick={() => setMemoSubTab(val)} style={subTabStyle(memoSubTab === val)}>{label}</button>
                 ))}
               </div>
