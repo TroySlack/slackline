@@ -387,6 +387,31 @@ const positionColor = (label) => {
 
 function ResearchCard({ memo, onDelete, onEdit, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
+  if (memo.isMdx && memo.slug) {
+    return (
+      <a href={`/research/${memo.slug}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+        <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.15s" }}
+             onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.accent}
+             onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+                {memo.sector && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "3px 9px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.sector}</span>}
+                {memo.read_minutes ? <span style={{ fontSize: 12, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.5 }}>{memo.read_minutes} min read</span> : null}
+                {memo.ticker && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub }}>${memo.ticker}</span>}
+              </div>
+              <h4 style={{ margin: "0 0 6px", fontSize: 19, color: COLORS.text, fontFamily: SERIF, fontWeight: 700, lineHeight: 1.3 }}>{memo.title}</h4>
+              <p style={{ margin: 0, color: COLORS.textSub, fontSize: 14, lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{memo.thesis}</p>
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0, minWidth: 110 }}>
+              {memo.position_label && <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: positionColor(memo.position_label), fontWeight: 600 }}>{memo.position_label}</div>}
+              <div style={{ fontSize: 12, color: COLORS.textSub, marginTop: 4 }}>{fmtMonthYear(memo.date)}</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    );
+  }
   return (
     <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "20px 24px", marginBottom: 12, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24 }}>
@@ -851,13 +876,12 @@ function InvestmentMandate() {
   );
 }
 
-function NewHoldingsTable({ holdings, memos, onEdit, onDelete, onResearchClick, isAdmin }) {
+function NewHoldingsTable({ holdings, memos, mdxByTicker, onEdit, onDelete, onResearchClick, isAdmin }) {
   const totalValue = holdings.reduce((s, h) => s + h.shares * h.currentPrice, 0);
   const memoByTicker = new Map();
   memos.forEach(m => {
     if (!m.ticker) return;
     const existing = memoByTicker.get(m.ticker);
-    // prefer "memo" over "thesis" if both exist
     if (!existing || (m.type === "memo" && existing.type !== "memo")) memoByTicker.set(m.ticker, m);
   });
 
@@ -870,16 +894,34 @@ function NewHoldingsTable({ holdings, memos, onEdit, onDelete, onResearchClick, 
     }}>T{tier}</span>
   );
 
-  const ResearchBtn = ({ memo }) => {
-    if (!memo) return <span style={{ color: COLORS.gray300, fontSize: 12 }}>—</span>;
-    const label = memo.type === "memo" ? "Memo" : "Thesis";
+  const ResearchBtn = ({ ticker }) => {
+    const t = (ticker || "").toUpperCase();
+    const mdx = mdxByTicker?.[t];
+    const supabaseMemo = memoByTicker.get(t);
+    if (mdx) {
+      const label = (mdx.type === "thesis" || mdx.type === "pass") ? (mdx.type === "thesis" ? "Thesis" : "Pass") : "Memo";
+      return (
+        <a
+          href={`/research/${mdx.slug}`}
+          onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.accent; e.currentTarget.style.color = COLORS.white; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.accent; }}
+          style={{ padding: "4px 12px", borderRadius: 2, border: `0.5px solid ${COLORS.accent}`, background: "transparent", color: COLORS.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, transition: "all 0.15s", textDecoration: "none", display: "inline-block" }}
+        >{label}</a>
+      );
+    }
+    if (supabaseMemo) {
+      const label = supabaseMemo.type === "memo" ? "Memo" : "Thesis";
+      return (
+        <button
+          onClick={() => onResearchClick(supabaseMemo.ticker)}
+          onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.accent; e.currentTarget.style.color = COLORS.white; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.accent; }}
+          style={{ padding: "4px 12px", borderRadius: 2, border: `0.5px solid ${COLORS.accent}`, background: "transparent", color: COLORS.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, transition: "all 0.15s" }}
+        >{label}</button>
+      );
+    }
     return (
-      <button
-        onClick={() => onResearchClick(memo.ticker)}
-        onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.accent; e.currentTarget.style.color = COLORS.white; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = COLORS.accent; }}
-        style={{ padding: "4px 12px", borderRadius: 2, border: `0.5px solid ${COLORS.accent}`, background: "transparent", color: COLORS.accent, cursor: "pointer", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, transition: "all 0.15s" }}
-      >{label}</button>
+      <span style={{ padding: "4px 12px", border: `0.5px solid ${COLORS.gray300}`, background: "transparent", color: COLORS.gray400, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT, display: "inline-block", borderRadius: 2 }}>None</span>
     );
   };
 
@@ -900,7 +942,6 @@ function NewHoldingsTable({ holdings, memos, onEdit, onDelete, onResearchClick, 
             const pl = mv - (h.shares * h.costBasis);
             const plPct = h.costBasis > 0 ? (pl / (h.shares * h.costBasis)) * 100 : 0;
             const plColor = pl >= 0 ? COLORS.green : COLORS.red;
-            const memo = memoByTicker.get(h.ticker);
             return (
               <tr key={h.id} style={{ borderBottom: `1px solid ${COLORS.gray200}` }}>
                 <td style={{ padding: "14px 12px", fontFamily: FONT }}>
@@ -913,7 +954,7 @@ function NewHoldingsTable({ holdings, memos, onEdit, onDelete, onResearchClick, 
                 <td style={{ padding: "14px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtUSD(h.costBasis)}</td>
                 <td style={{ padding: "14px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtUSD(h.currentPrice)}</td>
                 <td style={{ padding: "14px 12px", textAlign: "right", color: plColor, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtPct(plPct)}</td>
-                <td style={{ padding: "14px 12px" }}><ResearchBtn memo={memo} /></td>
+                <td style={{ padding: "14px 12px" }}><ResearchBtn ticker={h.ticker} /></td>
                 {isAdmin && (
                   <td style={{ padding: "14px 12px", whiteSpace: "nowrap" }}>
                     <button onClick={() => onEdit(h)} style={{ background: "none", border: "none", color: COLORS.textSub, cursor: "pointer", fontSize: 12, fontWeight: 600, marginRight: 8 }}>Edit</button>
@@ -943,6 +984,7 @@ export default function PortfolioDashboard() {
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [chartRange, setChartRange] = useState("SI");
   const [memoTickerFilter, setMemoTickerFilter] = useState(null);
+  const [mdxResearch, setMdxResearch] = useState([]);
   const [showAddMemo, setShowAddMemo] = useState(false);
   const [editingMemo, setEditingMemo] = useState(null);
   const [memoSubTab, setMemoSubTab] = useState("all");
@@ -960,6 +1002,14 @@ export default function PortfolioDashboard() {
       setActiveTab(1);
       setMemoTickerFilter(t.toUpperCase());
     }
+    if (params.get("tab") === "analysis") setActiveTab(1);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/research-index")
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(d => setMdxResearch(d.items || []))
+      .catch(() => setMdxResearch([]));
   }, []);
 
   useEffect(() => {
@@ -1053,6 +1103,12 @@ export default function PortfolioDashboard() {
 
   const benchmarkData = useBenchmark(benchmarkRange, chartStart);
   const fundHistory = useFundHistory(liveHoldings, chartStart);
+
+  // Build ticker → MDX research map (for holdings table Research button + analysis filtering)
+  const mdxByTicker = mdxResearch.reduce((acc, r) => {
+    if (r.ticker) acc[r.ticker.toUpperCase()] = r;
+    return acc;
+  }, {});
 
   const updatePortfolio = (key, updater) => setPortfolios(prev => ({ ...prev, [key]: updater(prev[key]) }));
 
@@ -1280,6 +1336,7 @@ export default function PortfolioDashboard() {
                 <NewHoldingsTable
                   holdings={liveHoldings}
                   memos={memos}
+                  mdxByTicker={mdxByTicker}
                   onEdit={(h) => setEditingHolding(h)}
                   onDelete={deleteHolding}
                   onResearchClick={(ticker) => {
@@ -1300,13 +1357,34 @@ export default function PortfolioDashboard() {
 
         {/* ANALYSIS TAB */}
         {activeTab === 1 && (() => {
-          const featuredList = memos.filter(m => m.featured).slice(0, 2);
-          const sectorsInUse = Array.from(new Set(memos.map(m => m.sector).filter(Boolean)));
+          // Convert MDX research items to memo-like shape so they render in the same lists
+          const mdxAsMemos = mdxResearch.map(r => ({
+            id: "mdx:" + r.slug,
+            slug: r.slug,
+            isMdx: true,
+            ticker: r.ticker,
+            title: r.headline,
+            thesis: r.kicker,
+            date: r.published,
+            status: "Active",
+            type: r.type === "thesis" || r.type === "pass" ? r.type : "memo",
+            sector: r.sector,
+            featured: false, // MDX items aren't featured by frontmatter; legacy supabase only
+            position_label: r.recommendation && r.ticker ? `${r.recommendation} $${r.ticker}` : (r.recommendation || null),
+            subtype: null, pdf_url: null, pages: null, read_minutes: r.readTime || null, metrics: null,
+          }));
+          // Combine — prefer MDX entry over Supabase entry if same ticker (MDX is canonical going forward)
+          const mdxTickers = new Set(mdxAsMemos.map(m => (m.ticker || "").toUpperCase()).filter(Boolean));
+          const filteredSupabase = memos.filter(m => !mdxTickers.has((m.ticker || "").toUpperCase()));
+          const allMemos = [...mdxAsMemos, ...filteredSupabase];
+
+          const featuredList = allMemos.filter(m => m.featured).slice(0, 2);
+          const sectorsInUse = Array.from(new Set(allMemos.map(m => m.sector).filter(Boolean)));
           const sectorMatch = (m) => memoSectorFilter === "all" || m.sector === memoSectorFilter;
           const typeMatch = (m, t) => memoSubTab === "all" || memoSubTab === t;
           const tickerMatch = (m) => !memoTickerFilter || (m.ticker || "").toUpperCase() === memoTickerFilter;
-          const memoList = memos.filter(m => (m.type || "thesis") === "memo" && sectorMatch(m) && typeMatch(m, "memo") && tickerMatch(m));
-          const thesisList = memos.filter(m => (m.type || "thesis") === "thesis" && sectorMatch(m) && typeMatch(m, "thesis") && tickerMatch(m));
+          const memoList = allMemos.filter(m => (m.type || "thesis") === "memo" && sectorMatch(m) && typeMatch(m, "memo") && tickerMatch(m));
+          const thesisList = allMemos.filter(m => (m.type || "thesis") === "thesis" && sectorMatch(m) && typeMatch(m, "thesis") && tickerMatch(m));
           const showMemos = memoSubTab === "all" || memoSubTab === "memo";
           const showTheses = memoSubTab === "all" || memoSubTab === "thesis";
           const subTabStyle = (active) => ({
