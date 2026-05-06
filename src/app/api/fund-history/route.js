@@ -13,7 +13,10 @@ export async function GET(request) {
     return Response.json({ error: "Missing tickers/shares/start" }, { status: 400 });
   }
 
-  const period1 = Math.floor(new Date(start + "T00:00:00Z").getTime() / 1000);
+  // Pad period1 a few days back so we don't miss the inception trading day
+  // due to timezone / weekend handling; we strictly clip below.
+  const startTs = new Date(start + "T00:00:00Z").getTime();
+  const period1 = Math.floor((startTs - 3 * 24 * 60 * 60 * 1000) / 1000);
   const period2 = end
     ? Math.floor(new Date(end + "T23:59:59Z").getTime() / 1000)
     : Math.floor(Date.now() / 1000);
@@ -53,8 +56,17 @@ export async function GET(request) {
       return Response.json({ error: "No price data" }, { status: 502 });
     }
 
-    // forward-fill per ticker
+    // forward-fill per ticker — but seed lastClose with each ticker's first
+    // pre-inception close so positions whose first observation is BEFORE start
+    // don't appear as 0 on the inception date.
     const lastClose = {};
+    tickers.forEach((t) => {
+      const m = tickerSeries[t];
+      if (!m) return;
+      const firstDate = Object.keys(m).sort().find((d) => d <= start);
+      if (firstDate) lastClose[t] = m[firstDate];
+    });
+
     const series = sortedDates.map((d) => {
       let total = 0;
       tickers.forEach((t, i) => {
@@ -66,12 +78,14 @@ export async function GET(request) {
       return { date: d, value: +total.toFixed(2) };
     }).filter((d) => d.value > 0);
 
-    if (!series.length) {
-      return Response.json({ error: "No usable data" }, { status: 502 });
+    // Strictly clip to dates >= start so the index baseline is the inception value
+    const clipped = series.filter((d) => d.date >= start);
+    if (!clipped.length) {
+      return Response.json({ error: "No usable data after start date" }, { status: 502 });
     }
 
-    const baseValue = series[0].value;
-    const indexed = series.map((s) => ({
+    const baseValue = clipped[0].value;
+    const indexed = clipped.map((s) => ({
       date: s.date,
       value: s.value,
       indexed: +((s.value / baseValue) * 100).toFixed(4),
@@ -82,7 +96,7 @@ export async function GET(request) {
       start,
       series: indexed,
       baseValue,
-      currentValue: series[series.length - 1].value,
+      currentValue: clipped[clipped.length - 1].value,
       fetchedAt: new Date().toISOString(),
     });
   } catch (err) {
