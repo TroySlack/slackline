@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import PdfPages from "./PdfPages.client";
 
 const BURGUNDY = "#8B1A1A";
 const GOLD = "#C9A84C";
@@ -128,14 +129,10 @@ export default async function ResearchPage({ params }) {
           </div>
         )}
 
-        {/* PDF embed (primary content) */}
+        {/* PDF rendered as inline page images (PDF.js) */}
         {memo.pdf_url ? (
-          <div style={{ border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff", overflow: "hidden", marginBottom: 36 }}>
-            <iframe
-              src={`${memo.pdf_url}#toolbar=0&navpanes=0`}
-              style={{ width: "100%", height: 900, border: "none", display: "block" }}
-              title={memo.title}
-            />
+          <div style={{ marginBottom: 36 }}>
+            <PdfPages url={memo.pdf_url} maxWidth={680} />
           </div>
         ) : (
           <div style={{ border: "0.5px dashed rgba(139,26,26,0.4)", padding: 40, textAlign: "center", color: SUB, fontStyle: "italic", fontSize: 14, marginBottom: 36 }}>
