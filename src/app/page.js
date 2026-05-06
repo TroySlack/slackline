@@ -482,9 +482,11 @@ function FeaturedCard({ memo, onDelete, onEdit, isAdmin }) {
         </div>
       )}
       <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-        {memo.pdf_url && (
-          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
-        )}
+        {memo.slug ? (
+          <a href={`/research/${memo.slug}`} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
+        ) : memo.pdf_url ? (
+          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>View PDF</a>
+        ) : null}
         {isAdmin && (
           <>
             <button onClick={() => onEdit(memo)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Edit</button>
