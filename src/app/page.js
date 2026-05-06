@@ -1215,7 +1215,7 @@ export default function PortfolioDashboard() {
   };
 
   const addMemo = async (m) => {
-    const { data } = await supabase.from("memos").insert({
+    const { data, error } = await supabase.from("memos").insert({
       portfolio_id: portfolioId, ticker: m.ticker, title: m.title,
       thesis: m.thesis, date: m.date, status: m.status, type: m.type,
       pdf_url: m.pdf_url || null,
@@ -1227,6 +1227,10 @@ export default function PortfolioDashboard() {
       recommendation: m.recommendation || null,
       data_as_of: m.data_as_of || null,
     }).select().single();
+    if (error || !data) {
+      alert("Save failed: " + (error?.message || "Unknown error.\n\nIf this is the first time you're saving, the database migration may not have run. Add the new columns in Supabase SQL editor."));
+      return;
+    }
     setMemos(prev => [{ ...m, id: data.id }, ...prev]);
   };
 
@@ -1236,7 +1240,7 @@ export default function PortfolioDashboard() {
   };
 
   const updateMemo = async (id, m) => {
-    const { data } = await supabase.from("memos").update({
+    const { data, error } = await supabase.from("memos").update({
       ticker: m.ticker, title: m.title, thesis: m.thesis,
       status: m.status, type: m.type,
       subtype: m.subtype, sector: m.sector,
@@ -1247,6 +1251,7 @@ export default function PortfolioDashboard() {
       recommendation: m.recommendation || null,
       data_as_of: m.data_as_of || null,
     }).eq("id", id).select().single();
+    if (error) { alert("Update failed: " + error.message); return; }
     setMemos(prev => prev.map(x => x.id === id ? {
       ...x, ...m,
       pages: data?.pages ?? m.pages, read_minutes: data?.read_minutes ?? m.read_minutes,
