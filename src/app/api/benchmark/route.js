@@ -2,17 +2,21 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const range = searchParams.get("range") || "3mo";
   const interval = searchParams.get("interval") || "1d";
+  const start = searchParams.get("start"); // optional YYYY-MM-DD; if set, uses period1/period2
 
   try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=${interval}&range=${range}`,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-        },
-        next: { revalidate: 300 },
-      }
-    );
+    let url;
+    if (start) {
+      const period1 = Math.floor(new Date(start + "T00:00:00Z").getTime() / 1000);
+      const period2 = Math.floor(Date.now() / 1000);
+      url = `https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?period1=${period1}&period2=${period2}&interval=${interval}`;
+    } else {
+      url = `https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=${interval}&range=${range}`;
+    }
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      next: { revalidate: 300 },
+    });
 
     if (!res.ok) {
       return Response.json({ error: "Failed to fetch benchmark data" }, { status: 502 });
@@ -33,18 +37,21 @@ export async function GET(request) {
       const close = closes[i];
       const date = new Date(ts * 1000).toISOString().slice(0, 10);
       const pctReturn = close && startPrice ? ((close - startPrice) / startPrice) * 100 : null;
+      const indexed = close && startPrice ? (close / startPrice) * 100 : null;
       return {
         date,
         close: close ? +close.toFixed(2) : null,
         pctReturn: pctReturn !== null ? +pctReturn.toFixed(2) : null,
+        indexed: indexed !== null ? +indexed.toFixed(4) : null,
       };
     }).filter((d) => d.close !== null);
 
     return Response.json({
       symbol: "^GSPC",
       name: "S&P 500",
-      range,
+      range: start ? "since" : range,
       interval,
+      start: start || null,
       startPrice: +startPrice.toFixed(2),
       currentPrice: +(closes[closes.length - 1] || startPrice).toFixed(2),
       series,
