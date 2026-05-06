@@ -37,7 +37,8 @@ const recColor = (rec) => {
 
 const fmtDate = (s) => {
   if (!s) return "";
-  const d = new Date(s);
+  const d = s instanceof Date ? s : new Date(s);
+  if (isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 };
 

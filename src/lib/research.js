@@ -20,13 +20,20 @@ export function getResearchBySlug(slug) {
   return { slug, frontmatter: data, content };
 }
 
+// gray-matter parses unquoted YAML dates as JS Date objects. Coerce to ISO string.
+const isoDate = (v) => {
+  if (!v) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  return String(v);
+};
+
 export function getAllResearch() {
   return getResearchSlugs()
     .map((slug) => getResearchBySlug(slug))
     .filter(Boolean)
     .sort((a, b) => {
-      const ad = a.frontmatter.published || "";
-      const bd = b.frontmatter.published || "";
+      const ad = isoDate(a.frontmatter.published);
+      const bd = isoDate(b.frontmatter.published);
       return bd.localeCompare(ad);
     });
 }
@@ -43,8 +50,8 @@ export function summarize(item) {
     type: f.type || "memo",
     recommendation: f.recommendation || "",
     rationale: f.rationale || "",
-    published: f.published || "",
-    dataAsOf: f.dataAsOf || "",
+    published: isoDate(f.published),
+    dataAsOf: isoDate(f.dataAsOf),
     readTime: f.readTime || 0,
   };
 }
