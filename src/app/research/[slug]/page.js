@@ -90,27 +90,27 @@ export default async function ResearchPage({ params }) {
         </div>
       </div>
 
-      <article style={{ maxWidth: 680, margin: "0 auto", padding: "56px 24px 80px" }}>
+      <article style={{ maxWidth: 680, margin: "0 auto", padding: "32px 24px 64px" }}>
         {/* Breadcrumb */}
-        <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BURGUNDY, opacity: 0.85, marginBottom: 28 }}>
+        <div style={{ fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: BURGUNDY, opacity: 0.85, marginBottom: 16 }}>
           Research / {typeLabel}{memo.sector ? ` / ${memo.sector}` : ""}
         </div>
 
-        <h1 style={{ fontFamily: SERIF, fontSize: 42, fontWeight: 500, lineHeight: 1.15, letterSpacing: -0.6, color: NEAR_BLACK, margin: 0 }}>{memo.title}</h1>
+        <h1 style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 500, lineHeight: 1.15, letterSpacing: -0.5, color: NEAR_BLACK, margin: 0 }}>{memo.title}</h1>
 
         {memo.kicker && (
-          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, lineHeight: 1.45, color: SUB, margin: "14px 0 0" }}>{memo.kicker}</p>
+          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 16, lineHeight: 1.45, color: SUB, margin: "8px 0 0" }}>{memo.kicker}</p>
         )}
 
-        <hr style={{ border: 0, borderTop: `0.5px solid ${BURGUNDY}`, margin: "24px 0 16px" }} />
+        <hr style={{ border: 0, borderTop: `0.5px solid ${BURGUNDY}`, margin: "16px 0 12px" }} />
 
         {/* Byline */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
           <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: SUB }}>
             Slackline Capital{memo.date ? ` · Published ${fmtDate(memo.date)}` : ""}{memo.read_minutes ? ` · ${memo.read_minutes} min read` : ""}
           </div>
           {(recommendation || rationale) && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "5px 12px", border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "4px 11px", border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff" }}>
               {recommendation && (
                 <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: recColor(recommendation) }}>{recommendation}</span>
               )}
@@ -126,11 +126,11 @@ export default async function ResearchPage({ params }) {
 
         {/* Key data card */}
         {keyData.length > 0 && (
-          <div style={{ display: "flex", border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff", marginBottom: 36, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: `0.5px solid ${BURGUNDY}`, borderRadius: 2, background: "#fff", marginBottom: 20, overflow: "hidden" }}>
             {keyData.map((cell, i) => (
-              <div key={i} style={{ flex: 1, padding: "14px 16px", borderRight: i === keyData.length - 1 ? "none" : "0.5px solid rgba(139,26,26,0.25)" }}>
-                <div style={{ fontFamily: SANS, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: SUB, marginBottom: 6 }}>{cell.label}</div>
-                <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: cellHighlightColor(cell.highlight), fontVariantNumeric: "tabular-nums" }}>{cell.value}</div>
+              <div key={i} style={{ flex: 1, padding: "10px 14px", borderRight: i === keyData.length - 1 ? "none" : "0.5px solid rgba(139,26,26,0.25)" }}>
+                <div style={{ fontFamily: SANS, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: SUB, marginBottom: 4 }}>{cell.label}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 600, color: cellHighlightColor(cell.highlight), fontVariantNumeric: "tabular-nums" }}>{cell.value}</div>
               </div>
             ))}
           </div>
@@ -138,7 +138,7 @@ export default async function ResearchPage({ params }) {
 
         {/* PDF rendered as inline page images (PDF.js) */}
         {memo.pdf_url ? (
-          <div style={{ marginBottom: 36 }}>
+          <div style={{ marginBottom: 24 }}>
             <PdfPages url={memo.pdf_url} maxWidth={680} />
           </div>
         ) : (
