@@ -190,11 +190,22 @@ function TradesTable({ trades, onDelete, isAdmin }) {
 
 function AddHoldingForm({ onAdd, onClose, initial }) {
   const isEdit = !!initial;
+  // Existing positions are shown in advanced (shares + cost basis) mode by
+  // default; new positions default to dollar mode.
+  const [mode, setMode] = useState(isEdit ? "advanced" : "dollars");
   const [form, setForm] = useState({
     ticker: initial?.ticker || "",
     shares: initial?.shares ?? "",
     costBasis: initial?.costBasis ?? "",
     currentPrice: initial?.currentPrice ?? "",
+    totalInvested:
+      initial?.shares && initial?.costBasis
+        ? (initial.shares * initial.costBasis).toFixed(2)
+        : "",
+    currentValue:
+      initial?.shares && initial?.currentPrice
+        ? (initial.shares * initial.currentPrice).toFixed(2)
+        : "",
     sector: initial?.sector || "Technology",
     pe: initial?.pe ?? "",
     tier: initial?.tier || 1,
@@ -217,13 +228,33 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
     } catch (e) { /* silent */ }
     setFetching(false);
   };
+  // Derive shares/cost basis from dollar inputs + current price.
+  const derivedFromDollars = (() => {
+    const cp = +form.currentPrice;
+    const cv = +form.currentValue;
+    const ti = +form.totalInvested;
+    if (!cp || !cv) return null;
+    const shares = cv / cp;
+    const costBasis = ti && shares ? ti / shares : 0;
+    return { shares, costBasis };
+  })();
   const submit = () => {
-    if (!form.ticker || !form.shares || !form.costBasis) return;
-    // If currentPrice is empty, use costBasis as a temporary placeholder — useLiveQuotes will overwrite on next tick
-    const cp = form.currentPrice ? +form.currentPrice : +form.costBasis;
+    let shares, costBasis;
+    if (mode === "dollars") {
+      if (!form.ticker || !form.currentValue || !form.totalInvested || !form.currentPrice) return;
+      const d = derivedFromDollars;
+      if (!d) return;
+      shares = d.shares;
+      costBasis = d.costBasis;
+    } else {
+      if (!form.ticker || !form.shares || !form.costBasis) return;
+      shares = +form.shares;
+      costBasis = +form.costBasis;
+    }
+    const cp = form.currentPrice ? +form.currentPrice : costBasis;
     onAdd({
-      ticker: form.ticker.toUpperCase(), shares: +form.shares,
-      costBasis: +form.costBasis, currentPrice: cp,
+      ticker: form.ticker.toUpperCase(), shares,
+      costBasis, currentPrice: cp,
       sector: form.sector, pe: form.pe ? +form.pe : null,
       tier: +form.tier || 1, hedge: !!form.hedge,
     });
@@ -231,10 +262,23 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
   };
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 12, fontWeight: 600, color: COLORS.textSub, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.5 };
+  const modeBtn = (active) => ({
+    padding: "6px 14px", borderRadius: 2, border: "none", cursor: "pointer",
+    fontWeight: 700, fontSize: 12, fontFamily: FONT, letterSpacing: 0.3,
+    background: active ? COLORS.white : "transparent",
+    color: active ? COLORS.text : COLORS.textSub,
+    boxShadow: active ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+  });
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 480, maxHeight: "90vh", overflow: "auto" }}>
-        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>{isEdit ? "Edit Position" : "Add Position"}</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>{isEdit ? "Edit Position" : "Add Position"}</h3>
+          <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 4, padding: 3 }}>
+            <button type="button" onClick={() => setMode("dollars")} style={modeBtn(mode === "dollars")}>By dollars</button>
+            <button type="button" onClick={() => setMode("advanced")} style={modeBtn(mode === "advanced")}>By shares</button>
+          </div>
+        </div>
         <div style={{ display: "grid", gap: 14 }}>
           <div>
             <label style={labelStyle}>Ticker</label>
@@ -246,19 +290,30 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
               placeholder="e.g. AAPL — current price auto-fills"
             />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div><label style={labelStyle}>Shares</label><input style={inputStyle} type="number" value={form.shares} onChange={handle("shares")} /></div>
-            <div><label style={labelStyle}>Cost Basis</label><input style={inputStyle} type="number" step="0.01" value={form.costBasis} onChange={handle("costBasis")} /></div>
+          <div>
+            <label style={labelStyle}>
+              Current Price {fetching && <span style={{ marginLeft: 6, fontSize: 10, color: COLORS.accent, textTransform: "none", letterSpacing: 0 }}>fetching…</span>}
+            </label>
+            <input style={inputStyle} type="number" step="0.01" value={form.currentPrice} onChange={handle("currentPrice")} placeholder="Auto-fills from Yahoo" />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div>
-              <label style={labelStyle}>
-                Current Price {fetching && <span style={{ marginLeft: 6, fontSize: 10, color: COLORS.accent, textTransform: "none", letterSpacing: 0 }}>fetching…</span>}
-              </label>
-              <input style={inputStyle} type="number" step="0.01" value={form.currentPrice} onChange={handle("currentPrice")} placeholder="Auto-fills from Yahoo" />
+          {mode === "dollars" ? (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div><label style={labelStyle}>Total Invested ($)</label><input style={inputStyle} type="number" step="0.01" value={form.totalInvested} onChange={handle("totalInvested")} placeholder="1000.00" /></div>
+                <div><label style={labelStyle}>Current Value ($)</label><input style={inputStyle} type="number" step="0.01" value={form.currentValue} onChange={handle("currentValue")} placeholder="1100.00" /></div>
+              </div>
+              {derivedFromDollars && (
+                <div style={{ fontSize: 11, color: COLORS.textSub, fontStyle: "italic", marginTop: -8 }}>
+                  → {derivedFromDollars.shares.toFixed(4)} shares at ${derivedFromDollars.costBasis ? derivedFromDollars.costBasis.toFixed(2) : "—"}/share cost basis
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div><label style={labelStyle}>Shares</label><input style={inputStyle} type="number" step="0.0001" value={form.shares} onChange={handle("shares")} /></div>
+              <div><label style={labelStyle}>Cost Basis ($/share)</label><input style={inputStyle} type="number" step="0.01" value={form.costBasis} onChange={handle("costBasis")} /></div>
             </div>
-            <div><label style={labelStyle}>P/E Ratio</label><input style={inputStyle} type="number" step="0.1" value={form.pe} onChange={handle("pe")} placeholder="Optional" /></div>
-          </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Tier</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={form.tier} onChange={handle("tier")}>
@@ -272,6 +327,7 @@ function AddHoldingForm({ onAdd, onClose, initial }) {
               </select>
             </div>
           </div>
+          <div><label style={labelStyle}>P/E Ratio (optional)</label><input style={inputStyle} type="number" step="0.1" value={form.pe} onChange={handle("pe")} placeholder="Optional" /></div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, cursor: "pointer" }}>
             <input type="checkbox" checked={form.hedge} onChange={handle("hedge")} />
             Mark as hedge position
