@@ -1446,9 +1446,45 @@ export default function PortfolioDashboard() {
                     <p style={{ margin: "4px 0 0", fontSize: 12, fontStyle: "italic", color: COLORS.textSub, fontFamily: SERIF }}>Indexed at 100 from inception. Time-weighted return.</p>
                   </div>
                   <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 4, padding: 3 }}>
-                    {["SI","1M","3M","YTD"].map(label => (
-                      <button key={label} onClick={() => setChartRange(label)} style={{ padding: "5px 14px", borderRadius: 2, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", background: chartRange === label ? COLORS.white : "transparent", color: chartRange === label ? COLORS.text : COLORS.textSub, boxShadow: chartRange === label ? "0 1px 2px rgba(0,0,0,0.06)" : "none", letterSpacing: 0.5 }}>{label}</button>
-                    ))}
+                    {(() => {
+                      const today = new Date();
+                      const inceptionMs = inception ? new Date(inception).getTime() : null;
+                      const lookbackStart = (label) => {
+                        const d = new Date(today);
+                        if (label === "1M") d.setMonth(today.getMonth() - 1);
+                        else if (label === "3M") d.setMonth(today.getMonth() - 3);
+                        else if (label === "YTD") return new Date(today.getFullYear(), 0, 1).getTime();
+                        else return null;
+                        return d.getTime();
+                      };
+                      const disabled = (label) => {
+                        if (label === "SI") return false;
+                        if (!inceptionMs) return false;
+                        const start = lookbackStart(label);
+                        return start != null && start < inceptionMs;
+                      };
+                      return ["SI","1M","3M","YTD"].map(label => {
+                        const isDisabled = disabled(label);
+                        return (
+                          <button
+                            key={label}
+                            onClick={() => !isDisabled && setChartRange(label)}
+                            disabled={isDisabled}
+                            title={isDisabled ? "Fund is not old enough for this lookback window" : undefined}
+                            style={{
+                              padding: "5px 14px", borderRadius: 2, border: "none",
+                              fontSize: 11, fontWeight: 700,
+                              cursor: isDisabled ? "not-allowed" : "pointer",
+                              background: chartRange === label ? COLORS.white : "transparent",
+                              color: isDisabled ? COLORS.gray300 : (chartRange === label ? COLORS.text : COLORS.textSub),
+                              boxShadow: chartRange === label ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                              letterSpacing: 0.5,
+                              opacity: isDisabled ? 0.5 : 1,
+                            }}
+                          >{label}</button>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
                 <IndexedPerfChart fundSeries={fundHistory?.series} benchmarkSeries={benchmarkData?.series} inceptionDate={chartRange === "SI" ? inception : null} />
