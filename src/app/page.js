@@ -465,37 +465,37 @@ function FeaturedCard({ memo, onDelete, onEdit, isAdmin }) {
   if (!memo) return null;
   const metrics = Array.isArray(memo.metrics) ? memo.metrics : [];
   return (
-    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderLeft: `5px solid ${COLORS.accent}`, borderRadius: 4, padding: "28px 32px", marginBottom: 36 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, flexWrap: "wrap" }}>
-        {memo.subtype && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "4px 12px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 1 }}>{memo.subtype}</span>}
-        {memo.sector && <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{memo.sector}</span>}
-        <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{fmtMonthYearLong(memo.date)}</span>
-        {memo.read_minutes ? <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1 }}>{memo.read_minutes} MIN READ</span> : null}
+    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderLeft: `4px solid ${COLORS.accent}`, borderRadius: 4, padding: "18px 22px", marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+        {memo.subtype && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, background: COLORS.accentPale, padding: "3px 9px", borderRadius: 3, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.subtype}</span>}
+        {memo.sector && <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.sector}</span>}
+        <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.8 }}>{fmtMonthYearLong(memo.date)}</span>
+        {memo.read_minutes ? <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.8 }}>{memo.read_minutes} MIN READ</span> : null}
       </div>
-      <h2 style={{ margin: "0 0 14px", fontSize: 32, fontFamily: SERIF, fontWeight: 700, color: COLORS.text, lineHeight: 1.2, letterSpacing: -0.4 }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 22, fontFamily: SERIF, fontWeight: 700, color: COLORS.text, lineHeight: 1.25, letterSpacing: -0.3 }}>
         {memo.title} {memo.ticker && <span style={{ color: COLORS.accent, fontStyle: "italic" }}>(${memo.ticker})</span>}
       </h2>
-      <p style={{ margin: 0, color: COLORS.gray600, fontSize: 15, lineHeight: 1.7 }}>{memo.thesis}</p>
+      <p style={{ margin: 0, color: COLORS.gray600, fontSize: 13, lineHeight: 1.55 }}>{memo.thesis}</p>
       {metrics.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${metrics.length}, 1fr)`, gap: 24, marginTop: 22, paddingTop: 20, borderTop: `1px solid ${COLORS.gray200}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${metrics.length}, 1fr)`, gap: 20, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.gray200}` }}>
           {metrics.map((m, i) => (
             <div key={i}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{m.label}</div>
-              <div style={{ fontSize: 20, fontFamily: SERIF, fontWeight: 600, color: positionColor(m.value) === COLORS.green || (m.label || "").toLowerCase().includes("recommend") ? COLORS.green : COLORS.text }}>{m.value}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>{m.label}</div>
+              <div style={{ fontSize: 16, fontFamily: SERIF, fontWeight: 600, color: positionColor(m.value) === COLORS.green || (m.label || "").toLowerCase().includes("recommend") ? COLORS.green : COLORS.text }}>{m.value}</div>
             </div>
           ))}
         </div>
       )}
-      <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
         {memo.slug ? (
-          <a href={`/research/${memo.slug}`} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
+          <a href={`/research/${memo.slug}`} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none", letterSpacing: 0.3 }}>Read full memo</a>
         ) : memo.pdf_url ? (
-          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 13, textDecoration: "none", letterSpacing: 0.3 }}>View PDF</a>
+          <a href={memo.pdf_url} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, fontWeight: 600, fontSize: 12, textDecoration: "none", letterSpacing: 0.3 }}>View PDF</a>
         ) : null}
         {isAdmin && (
           <>
-            <button onClick={() => onEdit(memo)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Edit</button>
-            <button onClick={() => onDelete(memo.id)} style={{ padding: "8px 18px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Delete</button>
+            <button onClick={() => onEdit(memo)} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Edit</button>
+            <button onClick={() => onDelete(memo.id)} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete</button>
           </>
         )}
       </div>
@@ -1314,7 +1314,7 @@ export default function PortfolioDashboard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 40px 60px" }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 40px 60px" }}>
 
         {/* PORTFOLIO TAB */}
         {activeTab === 0 && (() => {
@@ -1449,14 +1449,14 @@ export default function PortfolioDashboard() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Research</div>
-                  <h2 style={{ margin: 0, color: COLORS.text, fontSize: 38, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.7, lineHeight: 1.1 }}>Independent analysis</h2>
-                  <p style={{ margin: "10px 0 0", color: COLORS.textSub, fontSize: 16, fontFamily: SERIF, fontStyle: "italic" }}>Original equity research and position rationales.</p>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 4 }}>Research</div>
+                  <h2 style={{ margin: 0, color: COLORS.text, fontSize: 28, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.5, lineHeight: 1.1 }}>Independent analysis</h2>
+                  <p style={{ margin: "4px 0 0", color: COLORS.textSub, fontSize: 13, fontFamily: SERIF, fontStyle: "italic" }}>Original equity research and position rationales.</p>
                 </div>
                 {isAdmin && <button onClick={() => setShowAddMemo(true)} style={{ ...actionBtn, background: COLORS.white, color: COLORS.text, border: `1px solid ${COLORS.gray300}` }}>+ New piece</button>}
               </div>
 
-              <div style={{ borderTop: `1px solid ${COLORS.gray200}`, marginTop: 24, marginBottom: 24 }} />
+              <div style={{ borderTop: `1px solid ${COLORS.gray200}`, marginTop: 16, marginBottom: 18 }} />
 
               {memoTickerFilter && (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: COLORS.accentPale, border: `1px solid ${COLORS.accent}`, borderRadius: 4, marginBottom: 24, fontSize: 13 }}>
@@ -1474,7 +1474,7 @@ export default function PortfolioDashboard() {
 
               {featuredList.length > 0 && !memoTickerFilter && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Featured</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>Featured</div>
                   {featuredList.map(m => (
                     <FeaturedCard key={m.id} memo={m} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />
                   ))}
