@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import PdfPages from "./PdfPages.client";
 
+// Always fetch fresh — never cache the supabase row, so edits/deletes
+// are reflected immediately without rebuild or revalidation.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const BURGUNDY = "#8B1A1A";
 const GOLD = "#C9A84C";
 const GREEN = "#2D6E3A";

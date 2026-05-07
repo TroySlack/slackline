@@ -413,12 +413,17 @@ function ResearchCard({ memo, onDelete, onEdit, isAdmin }) {
             </div>
           </div>
         </a>
-        {isAdmin && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLORS.gray200}` }}>
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(memo); }} style={{ padding: "5px 12px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 11 }}>Edit</button>
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(memo.id); }} style={{ padding: "5px 12px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 11 }}>Delete</button>
-          </div>
-        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLORS.gray200}` }}>
+          <a href={`/research/${memo.slug}`} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.accent}`, background: COLORS.accent, color: COLORS.white, cursor: "pointer", fontWeight: 600, fontSize: 12, textDecoration: "none", letterSpacing: 0.3 }}>
+            Read full {memo.type === "thesis" ? "thesis" : (memo.type === "pass" ? "note" : "memo")}
+          </a>
+          {isAdmin && (
+            <>
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(memo); }} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.text, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Edit</button>
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(memo.id); }} style={{ padding: "6px 14px", borderRadius: 2, border: `1px solid ${COLORS.red}`, background: "transparent", color: COLORS.red, cursor: "pointer", fontWeight: 600, fontSize: 12 }}>Delete</button>
+            </>
+          )}
+        </div>
       </div>
     );
   }
