@@ -842,36 +842,78 @@ function IndexedPerfChart({ fundSeries, benchmarkSeries, inceptionDate }) {
   if (!benchmarkSeries?.length) {
     return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: COLORS.textSub }}>Loading performance data…</div>;
   }
-  // Merge fund and benchmark by date
-  const fundMap = new Map((fundSeries || []).map(d => [d.date, d.indexed]));
-  const merged = benchmarkSeries.map(d => ({
-    date: d.date,
-    fund: fundMap.has(d.date) ? fundMap.get(d.date) : null,
-    bench: d.indexed != null ? d.indexed : (100 + (d.pctReturn || 0)),
-  }));
-  // Forward-fill fund line so it's continuous
-  let lastFund = 100;
-  for (const row of merged) {
-    if (row.fund == null) row.fund = lastFund;
-    else lastFund = row.fund;
+
+  // 1. Strict clip — drop anything before the inception date so 4/30 (or any
+  //    pre-inception trading day Yahoo leaks back) never appears on the axis.
+  const fundClipped = (fundSeries || []).filter(d => !inceptionDate || d.date >= inceptionDate);
+  const benchClipped = benchmarkSeries.filter(d => !inceptionDate || d.date >= inceptionDate);
+  if (!benchClipped.length) {
+    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: COLORS.textSub }}>Loading performance data…</div>;
   }
+
+  // 2. Re-baseline both series so the inception (= first kept) close = 100 → 0%.
+  const fundBase = fundClipped[0]?.indexed || 100;
+  const benchBase = benchClipped[0]?.indexed != null ? benchClipped[0].indexed : (100 + (benchClipped[0]?.pctReturn || 0));
+  const reFund = new Map(fundClipped.map(d => [d.date, ((d.indexed || fundBase) / fundBase) * 100]));
+  const reBench = new Map(benchClipped.map(d => {
+    const raw = d.indexed != null ? d.indexed : (100 + (d.pctReturn || 0));
+    return [d.date, (raw / benchBase) * 100];
+  }));
+
+  // 3. Merge by date, forward-fill fund so the line stays continuous on
+  //    days when one side is missing data.
+  const allDates = Array.from(new Set([...reFund.keys(), ...reBench.keys()])).sort();
+  let lastFund = 100;
+  const merged = allDates.map(date => {
+    if (reFund.has(date)) lastFund = reFund.get(date);
+    return {
+      date,
+      fund: lastFund,
+      bench: reBench.has(date) ? reBench.get(date) : null,
+    };
+  });
+
+  // 4. Build clean half-percent y-axis ticks adapted to actual data range.
+  const allPcts = merged.flatMap(d => [d.fund != null ? d.fund - 100 : null, d.bench != null ? d.bench - 100 : null]).filter(v => v != null);
+  const minPct = Math.min(0, ...allPcts);
+  const maxPct = Math.max(0, ...allPcts);
+  // round outward to nearest 0.5 with a small pad so lines don't touch the axis edge
+  const tickMin = Math.floor((minPct - 0.25) * 2) / 2;
+  const tickMax = Math.ceil((maxPct + 0.25) * 2) / 2;
+  const ticks = [];
+  for (let v = tickMin; v <= tickMax + 0.0001; v += 0.5) ticks.push(+(v + 100).toFixed(2));
+
   const last = merged[merged.length - 1] || { fund: 100, bench: 100 };
   const fmtTick = (v) => { const d = new Date(v); return (d.getMonth()+1)+"/"+d.getDate(); };
+  const fmtPctTick = v => { const p = +(v - 100).toFixed(1); return (p > 0 ? "+" : "") + p.toFixed(1) + "%"; };
+
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={merged} margin={{ top: 20, right: 70, left: 0, bottom: 10 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray200} vertical={false} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: COLORS.gray400 }} tickFormatter={fmtTick} interval={Math.max(1, Math.floor(merged.length / 6))} />
-        <YAxis tick={{ fontSize: 11, fill: COLORS.gray400 }} domain={["auto","auto"]} tickFormatter={v => "+" + (v - 100).toFixed(1) + "%"} />
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 11, fill: COLORS.gray400 }}
+          tickFormatter={fmtTick}
+          interval={Math.max(1, Math.floor(merged.length / 6))}
+          padding={{ left: 0, right: 0 }}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: COLORS.gray400 }}
+          domain={[tickMin + 100, tickMax + 100]}
+          ticks={ticks}
+          tickFormatter={fmtPctTick}
+          allowDecimals
+        />
         <Tooltip formatter={(v, name) => [(v - 100 >= 0 ? "+" : "") + (v - 100).toFixed(2) + "%", name]} contentStyle={{ borderRadius: 4, border: `1px solid ${COLORS.gray200}`, fontSize: 12 }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         {inceptionDate && (
           <ReferenceLine x={inceptionDate} stroke={COLORS.gold} strokeDasharray="4 3" strokeWidth={1.5}
             label={{ value: "INCEPTION", position: "insideTopLeft", fill: COLORS.gold, fontSize: 10, fontWeight: 700, letterSpacing: 1 }} />
         )}
-        <Line type="monotone" dataKey="fund" stroke={COLORS.accent} strokeWidth={2} dot={false} name="Slackline Capital" connectNulls
+        <Line type="linear" dataKey="fund" stroke={COLORS.accent} strokeWidth={2} dot={{ r: 2.5, fill: COLORS.accent, strokeWidth: 0 }} name="Slackline Capital" connectNulls isAnimationActive={false}
           label={{ position: "right", value: "+" + (last.fund - 100).toFixed(2) + "%", fill: COLORS.accent, fontSize: 11, fontWeight: 700, content: ({ x, y, value, index }) => index === merged.length - 1 ? <text x={x + 6} y={y + 4} fill={COLORS.accent} fontSize={11} fontWeight={700}>{(value - 100 >= 0 ? "+" : "") + (value - 100).toFixed(2) + "%"}</text> : null }} />
-        <Line type="monotone" dataKey="bench" stroke={COLORS.gray500} strokeWidth={1.5} dot={false} strokeDasharray="5 4" name="S&P 500" connectNulls
+        <Line type="linear" dataKey="bench" stroke={COLORS.gray500} strokeWidth={1.5} dot={{ r: 2, fill: COLORS.gray500, strokeWidth: 0 }} strokeDasharray="5 4" name="S&P 500" connectNulls isAnimationActive={false}
           label={{ position: "right", content: ({ x, y, value, index }) => index === merged.length - 1 ? <text x={x + 6} y={y + 4} fill={COLORS.gray500} fontSize={11} fontWeight={700}>{(value - 100 >= 0 ? "+" : "") + (value - 100).toFixed(2) + "%"}</text> : null }} />
       </LineChart>
     </ResponsiveContainer>
