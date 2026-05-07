@@ -1449,7 +1449,6 @@ export default function PortfolioDashboard() {
               <FourStatStrip stats={[
                 { label: "Since inception", value: (sinceInceptionPct >= 0 ? "+" : "") + sinceInceptionPct.toFixed(2) + "%", subtitle: "Slackline Capital", color: fundColor },
                 { label: "Benchmark", value: (benchPct >= 0 ? "+" : "") + benchPct.toFixed(2) + "%", subtitle: "S&P 500 (SPX)", color: benchColor },
-                { label: "Active return", value: ((sinceInceptionPct - benchPct) >= 0 ? "+" : "") + ((sinceInceptionPct - benchPct) * 100).toFixed(0) + " bps", subtitle: "Alpha vs S&P", color: (sinceInceptionPct - benchPct) >= 0 ? COLORS.green : COLORS.red },
                 { label: "Composition", value: totalPositions.toString(), subtitle: tier1.length + " core · top " + Math.round(tier1Weight) + "%" },
               ]} />
 
