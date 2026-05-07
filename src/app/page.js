@@ -1060,7 +1060,6 @@ const DEFAULT_MANDATE = {
   strategy: "Concentrated long-only U.S. equity",
   horizon: "3–5 years",
   positionCap: "20% (Tier 1) · 8% (Tier 2)",
-  sectorCap: "40% (ex-diversified core)",
 };
 
 function InvestmentMandate({ mandate, onEdit, isAdmin }) {
@@ -1080,11 +1079,13 @@ function InvestmentMandate({ mandate, onEdit, isAdmin }) {
       {paras.map((p, i) => (
         <p key={i} style={{ ...para, margin: i === paras.length - 1 ? "0 0 22px" : "0 0 14px" }}>{p}</p>
       ))}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", paddingTop: 18, borderTop: `1px solid ${COLORS.gray200}` }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: "16px 24px", paddingTop: 18, borderTop: `1px solid ${COLORS.gray200}`, alignItems: "start" }}>
         <div><div style={dlLabel}>Strategy</div><div style={dlValue}>{m.strategy}</div></div>
-        <div><div style={dlLabel}>Horizon</div><div style={dlValue}>{m.horizon}</div></div>
-        <div><div style={dlLabel}>Position cap</div><div style={dlValue}>{m.positionCap}</div></div>
-        <div><div style={dlLabel}>Sector cap</div><div style={dlValue}>{m.sectorCap}</div></div>
+        <div style={{ textAlign: "center", borderLeft: `1px solid ${COLORS.gray200}`, borderRight: `1px solid ${COLORS.gray200}`, padding: "0 16px" }}>
+          <div style={dlLabel}>Position cap</div>
+          <div style={dlValue}>{m.positionCap}</div>
+        </div>
+        <div style={{ textAlign: "right" }}><div style={dlLabel}>Horizon</div><div style={dlValue}>{m.horizon}</div></div>
       </div>
     </div>
   );
@@ -1096,7 +1097,6 @@ function EditMandateForm({ initial, onSave, onClose }) {
   const [strategy, setStrategy] = useState(start.strategy);
   const [horizon, setHorizon] = useState(start.horizon);
   const [positionCap, setPositionCap] = useState(start.positionCap);
-  const [sectorCap, setSectorCap] = useState(start.sectorCap);
   const [saving, setSaving] = useState(false);
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
   const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
@@ -1110,7 +1110,6 @@ function EditMandateForm({ initial, onSave, onClose }) {
       strategy: strategy.trim(),
       horizon: horizon.trim(),
       positionCap: positionCap.trim(),
-      sectorCap: sectorCap.trim(),
     });
     setSaving(false);
     onClose();
@@ -1137,8 +1136,7 @@ function EditMandateForm({ initial, onSave, onClose }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label style={labelStyle}>Strategy</label><input style={inputStyle} value={strategy} onChange={(e) => setStrategy(e.target.value)} /></div>
             <div><label style={labelStyle}>Horizon</label><input style={inputStyle} value={horizon} onChange={(e) => setHorizon(e.target.value)} /></div>
-            <div><label style={labelStyle}>Position cap</label><input style={inputStyle} value={positionCap} onChange={(e) => setPositionCap(e.target.value)} /></div>
-            <div><label style={labelStyle}>Sector cap</label><input style={inputStyle} value={sectorCap} onChange={(e) => setSectorCap(e.target.value)} /></div>
+            <div style={{ gridColumn: "1 / -1" }}><label style={labelStyle}>Position cap</label><input style={inputStyle} value={positionCap} onChange={(e) => setPositionCap(e.target.value)} /></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
