@@ -1568,7 +1568,7 @@ export default function PortfolioDashboard() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Portfolio · Q2 {new Date().getFullYear()}</div>
-                  <h1 style={{ margin: 0, fontSize: 40, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.7, color: COLORS.text, lineHeight: 1.05 }}>Slackline Capital</h1>
+                  <h1 style={{ margin: 0, fontSize: 40, fontFamily: SERIF, fontWeight: 600, letterSpacing: -0.7, color: COLORS.text, lineHeight: 1.05 }}>Slackline Capital Equity Portfolio</h1>
                   <p style={{ margin: "6px 0 0", color: COLORS.textSub, fontSize: 14, fontStyle: "italic", fontFamily: SERIF }}>
                     Inception {inceptionLabel} · Active U.S. equity portfolio · USD
                   </p>
@@ -1726,7 +1726,7 @@ export default function PortfolioDashboard() {
 
               {featuredList.length > 0 && !memoTickerFilter && (
                 <>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 8 }}>Featured</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: 1.6, marginBottom: 10 }}>Featured</div>
                   {featuredList.map(m => (
                     <FeaturedCard key={m.id} memo={m} onDelete={deleteMemo} onEdit={(mm) => setEditingMemo(mm)} isAdmin={isAdmin} />
                   ))}
