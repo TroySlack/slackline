@@ -593,6 +593,10 @@ function AddMemoForm({ onAdd, onClose, initial }) {
   const [pdfFile, setPdfFile] = useState(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [chartsText, setChartsText] = useState(
+    initial?.charts ? JSON.stringify(initial.charts, null, 2) : ""
+  );
+  const [chartsError, setChartsError] = useState("");
   // Map editorial subtypes to the canonical Type used for section bucketing.
   const subtypeToType = (s) => {
     const v = (s || "").toLowerCase();
@@ -619,6 +623,17 @@ function AddMemoForm({ onAdd, onClose, initial }) {
   const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit" };
   const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
   const submit = async () => {
+    // Validate charts JSON if present
+    let charts = null;
+    if (chartsText.trim()) {
+      try {
+        charts = JSON.parse(chartsText);
+        setChartsError("");
+      } catch (e) {
+        setChartsError("Invalid JSON: " + e.message);
+        return;
+      }
+    }
     setUploading(true);
     let pdf_url = isEdit ? (initial.pdf_url || null) : null;
     if (removePdf) pdf_url = null;
@@ -645,6 +660,7 @@ function AddMemoForm({ onAdd, onClose, initial }) {
       position_label: form.position_label || null, featured: form.featured,
       data_as_of: form.data_as_of || null,
       metrics: cleanMetrics.length ? cleanMetrics : null,
+      charts,
       pdf_url,
     });
     setUploading(false);
@@ -726,6 +742,26 @@ function AddMemoForm({ onAdd, onClose, initial }) {
                   <button type="button" onClick={() => removeMetricRow(i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 18, fontWeight: 700, padding: 0 }}>×</button>
                 </div>
               ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Thesis Charts (optional, JSON)</label>
+              <button type="button" onClick={() => setChartsText(JSON.stringify({
+                grossMargin: { labels: ["FY2020","FY2021","FY2022","FY2023","FY2024","FY2025"], data: [86.6,88.2,87.7,87.9,89.0,89.3] },
+                multiples: { labels: ["FY2020","FY2021","FY2022","FY2023","FY2024","FY2025","Current"], pe: [33.4,36.4,26.5,36.7,38.5,38.3,26.6], evEbitda: [21.7,24.6,20.2,22.1,23.8,23.8,16.3], peMedian: 31.8 },
+                revenue: { labels: ["FY21","FY22","FY23","FY24","FY25"], data: [168.1,198.3,211.9,245.1,281.7], unit: "B" },
+              }, null, 2))} style={{ fontSize: 11, color: COLORS.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Use template</button>
+            </div>
+            <textarea
+              style={{ ...inputStyle, height: 160, resize: "vertical", fontFamily: "monospace", fontSize: 12 }}
+              value={chartsText}
+              onChange={(e) => { setChartsText(e.target.value); setChartsError(""); }}
+              placeholder='{ "grossMargin": { "labels": ["FY2020", ...], "data": [86.6, ...] }, "multiples": { ... }, "revenue": { ... } }'
+            />
+            {chartsError && <div style={{ fontSize: 11, color: COLORS.red, marginTop: 4 }}>{chartsError}</div>}
+            <div style={{ fontSize: 11, color: COLORS.textSub, marginTop: 4, fontStyle: "italic" }}>
+              Three charts render side-by-side above the PDF when present. Any chart key can be omitted.
             </div>
           </div>
           <div>
@@ -1333,6 +1369,7 @@ export default function PortfolioDashboard() {
           slug: m.slug || null, kicker: m.kicker || null,
           recommendation: m.recommendation || null,
           data_as_of: m.data_as_of || null,
+          charts: m.charts || null,
         }));
 
         setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades, inceptionDate: pf.inception_date || null, inceptionValue: pf.inception_value ? +pf.inception_value : null, mandate: pf.mandate || null } });
@@ -1444,6 +1481,7 @@ export default function PortfolioDashboard() {
       slug: m.slug || null, kicker: m.kicker || null,
       recommendation: m.recommendation || null,
       data_as_of: m.data_as_of || null,
+      charts: m.charts || null,
     }).select().single();
     if (error || !data) {
       alert("Save failed: " + (error?.message || "Unknown error.\n\nIf this is the first time you're saving, the database migration may not have run. Add the new columns in Supabase SQL editor."));
@@ -1468,6 +1506,7 @@ export default function PortfolioDashboard() {
       slug: m.slug || null, kicker: m.kicker || null,
       recommendation: m.recommendation || null,
       data_as_of: m.data_as_of || null,
+      charts: m.charts || null,
     }).eq("id", id).select().single();
     if (error) { alert("Update failed: " + error.message); return; }
     setMemos(prev => prev.map(x => x.id === id ? {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PdfPages from "./PdfPages.client";
+import ThesisCharts from "./ThesisCharts.client";
 
 // Always fetch fresh — never cache the supabase row, so edits/deletes
 // are reflected immediately without rebuild or revalidation.
@@ -135,6 +136,9 @@ export default async function ResearchPage({ params }) {
             ))}
           </div>
         )}
+
+        {/* Thesis charts (rendered above the PDF when chart data is set) */}
+        <ThesisCharts charts={memo.charts} />
 
         {/* PDF rendered as inline page images (PDF.js) */}
         {memo.pdf_url ? (
