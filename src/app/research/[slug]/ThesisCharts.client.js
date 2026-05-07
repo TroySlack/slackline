@@ -28,10 +28,10 @@ function GrossMarginChart({ data }) {
     <div style={cardStyle}>
       <div style={titleStyle}>Gross margin %</div>
       <ResponsiveContainer width="100%" height={140}>
-        <LineChart data={series} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
+        <LineChart data={series} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 3" stroke={GREY_LIGHT} vertical={false} />
           <XAxis dataKey="label" tick={tickStyle} axisLine={{ stroke: GREY_LIGHT }} tickLine={false} />
-          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v.toFixed(1)} width={32} />
+          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v.toFixed(1)} width={42} />
           <Tooltip formatter={v => v + "%"} contentStyle={{ borderRadius: 2, border: `0.5px solid ${BURGUNDY}`, fontSize: 11, fontFamily: SERIF }} />
           <Line type="linear" dataKey="value" stroke={BURGUNDY} strokeWidth={1.5} dot={{ r: 2, fill: BURGUNDY, strokeWidth: 0 }} isAnimationActive={false} />
         </LineChart>
@@ -54,10 +54,10 @@ function MultiplesChart({ data }) {
     <div style={cardStyle}>
       <div style={titleStyle}>Multiple compression: P/E &amp; EV/EBITDA</div>
       <ResponsiveContainer width="100%" height={140}>
-        <LineChart data={series} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
+        <LineChart data={series} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 3" stroke={GREY_LIGHT} vertical={false} />
           <XAxis dataKey="label" tick={tickStyle} axisLine={{ stroke: GREY_LIGHT }} tickLine={false} />
-          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v + "x"} width={32} />
+          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v + "x"} width={42} />
           <Tooltip formatter={v => v + "x"} contentStyle={{ borderRadius: 2, border: `0.5px solid ${BURGUNDY}`, fontSize: 11, fontFamily: SERIF }} />
           {data.peMedian != null && (
             <ReferenceLine y={data.peMedian} stroke={GOLD} strokeDasharray="3 3" strokeWidth={1}
@@ -83,10 +83,10 @@ function RevenueChart({ data }) {
     <div style={cardStyle}>
       <div style={titleStyle}>Annual revenue {unit ? `($${unit})` : ""}</div>
       <ResponsiveContainer width="100%" height={140}>
-        <BarChart data={series} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
+        <BarChart data={series} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 3" stroke={GREY_LIGHT} vertical={false} />
           <XAxis dataKey="label" tick={tickStyle} axisLine={{ stroke: GREY_LIGHT }} tickLine={false} />
-          <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v => v} width={32} />
+          <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={v => v} width={42} />
           <Tooltip formatter={v => `$${v}${unit}`} contentStyle={{ borderRadius: 2, border: `0.5px solid ${BURGUNDY}`, fontSize: 11, fontFamily: SERIF }} cursor={{ fill: "rgba(139,26,26,0.05)" }} />
           <Bar dataKey="value" fill={BURGUNDY} isAnimationActive={false} />
         </BarChart>
