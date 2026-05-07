@@ -1051,21 +1051,100 @@ function PortfolioStructure({ holdings }) {
   );
 }
 
-function InvestmentMandate() {
+const DEFAULT_MANDATE = {
+  paras: [
+    "A concentrated U.S. equity book run as personal capital. Positions are taken with a multi-year horizon and sized to reflect conviction — five Tier 1 ideas with hard 20% caps, balanced by a diversified tail of smaller positions across the broader market.",
+    "The thesis is barbell construction. Tier 1 expresses a directional bet on AI infrastructure and durable enterprise software; Tier 2 dampens drawdowns through breadth, sector dispersion, and a deliberate hedge in mature consumer technology.",
+    "Apple is held as a structural hedge, not a thesis position — it is sized to participate in defensive rotations rather than to lead.",
+  ],
+  strategy: "Concentrated long-only U.S. equity",
+  horizon: "3–5 years",
+  positionCap: "20% (Tier 1) · 8% (Tier 2)",
+  sectorCap: "40% (ex-diversified core)",
+};
+
+function InvestmentMandate({ mandate, onEdit, isAdmin }) {
+  const m = { ...DEFAULT_MANDATE, ...(mandate || {}) };
+  const paras = Array.isArray(m.paras) && m.paras.length ? m.paras : DEFAULT_MANDATE.paras;
   const para = { margin: "0 0 14px", color: COLORS.gray600, fontSize: 14, lineHeight: 1.65, fontFamily: SERIF };
   const dlLabel = { fontSize: 10, fontWeight: 700, color: COLORS.textSub, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 };
   const dlValue = { fontSize: 14, color: COLORS.text, fontFamily: SERIF, fontWeight: 600 };
   return (
-    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "24px 28px" }}>
-      <h3 style={{ margin: "0 0 16px", fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: COLORS.text }}>Investment mandate</h3>
-      <p style={para}>A concentrated U.S. equity book run as personal capital. Positions are taken with a multi-year horizon and sized to reflect conviction — five Tier 1 ideas with hard 20% caps, balanced by a diversified tail of smaller positions across the broader market.</p>
-      <p style={para}>The thesis is barbell construction. Tier 1 expresses a directional bet on AI infrastructure and durable enterprise software; Tier 2 dampens drawdowns through breadth, sector dispersion, and a deliberate hedge in mature consumer technology.</p>
-      <p style={{ ...para, margin: "0 0 22px" }}>Apple is held as a structural hedge, not a thesis position — it is sized to participate in defensive rotations rather than to lead.</p>
+    <div style={{ background: COLORS.white, border: `1px solid ${COLORS.gray200}`, borderRadius: 4, padding: "24px 28px", position: "relative" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontFamily: SERIF, fontSize: 20, fontWeight: 600, color: COLORS.text }}>Investment mandate</h3>
+        {isAdmin && (
+          <button onClick={onEdit} style={{ padding: "4px 10px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, color: COLORS.textSub, cursor: "pointer", fontSize: 11, fontWeight: 600, letterSpacing: 0.3 }}>Edit</button>
+        )}
+      </div>
+      {paras.map((p, i) => (
+        <p key={i} style={{ ...para, margin: i === paras.length - 1 ? "0 0 22px" : "0 0 14px" }}>{p}</p>
+      ))}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", paddingTop: 18, borderTop: `1px solid ${COLORS.gray200}` }}>
-        <div><div style={dlLabel}>Strategy</div><div style={dlValue}>Concentrated long-only U.S. equity</div></div>
-        <div><div style={dlLabel}>Horizon</div><div style={dlValue}>3–5 years</div></div>
-        <div><div style={dlLabel}>Position cap</div><div style={dlValue}>20% (Tier 1) · 8% (Tier 2)</div></div>
-        <div><div style={dlLabel}>Sector cap</div><div style={dlValue}>40% (ex-diversified core)</div></div>
+        <div><div style={dlLabel}>Strategy</div><div style={dlValue}>{m.strategy}</div></div>
+        <div><div style={dlLabel}>Horizon</div><div style={dlValue}>{m.horizon}</div></div>
+        <div><div style={dlLabel}>Position cap</div><div style={dlValue}>{m.positionCap}</div></div>
+        <div><div style={dlLabel}>Sector cap</div><div style={dlValue}>{m.sectorCap}</div></div>
+      </div>
+    </div>
+  );
+}
+
+function EditMandateForm({ initial, onSave, onClose }) {
+  const start = { ...DEFAULT_MANDATE, ...(initial || {}) };
+  const [paras, setParas] = useState(Array.isArray(start.paras) && start.paras.length ? start.paras : DEFAULT_MANDATE.paras);
+  const [strategy, setStrategy] = useState(start.strategy);
+  const [horizon, setHorizon] = useState(start.horizon);
+  const [positionCap, setPositionCap] = useState(start.positionCap);
+  const [sectorCap, setSectorCap] = useState(start.sectorCap);
+  const [saving, setSaving] = useState(false);
+  const inputStyle = { width: "100%", padding: "10px 12px", border: `1px solid ${COLORS.gray200}`, borderRadius: 2, fontSize: 14, outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: COLORS.textSub, marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: 0.8 };
+  const updatePara = (i, v) => setParas(prev => prev.map((p, idx) => idx === i ? v : p));
+  const addPara = () => setParas(prev => [...prev, ""]);
+  const removePara = (i) => setParas(prev => prev.filter((_, idx) => idx !== i));
+  const submit = async () => {
+    setSaving(true);
+    await onSave({
+      paras: paras.map(p => p.trim()).filter(Boolean),
+      strategy: strategy.trim(),
+      horizon: horizon.trim(),
+      positionCap: positionCap.trim(),
+      sectorCap: sectorCap.trim(),
+    });
+    setSaving(false);
+    onClose();
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div style={{ background: COLORS.white, borderRadius: 4, padding: 32, width: 640, maxHeight: "90vh", overflow: "auto" }}>
+        <h3 style={{ margin: "0 0 20px", color: COLORS.text, fontSize: 22, fontFamily: SERIF, fontWeight: 600 }}>Edit Investment Mandate</h3>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Paragraphs</label>
+              <button type="button" onClick={addPara} style={{ fontSize: 11, color: COLORS.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>+ Add paragraph</button>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {paras.map((p, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 28px", gap: 8, alignItems: "start" }}>
+                  <textarea style={{ ...inputStyle, height: 100, resize: "vertical" }} value={p} onChange={(e) => updatePara(i, e.target.value)} placeholder={`Paragraph ${i + 1}`} />
+                  <button type="button" onClick={() => removePara(i)} disabled={paras.length === 1} style={{ background: "none", border: "none", color: COLORS.red, cursor: paras.length === 1 ? "not-allowed" : "pointer", fontSize: 18, fontWeight: 700, padding: 0, opacity: paras.length === 1 ? 0.3 : 1 }}>×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div><label style={labelStyle}>Strategy</label><input style={inputStyle} value={strategy} onChange={(e) => setStrategy(e.target.value)} /></div>
+            <div><label style={labelStyle}>Horizon</label><input style={inputStyle} value={horizon} onChange={(e) => setHorizon(e.target.value)} /></div>
+            <div><label style={labelStyle}>Position cap</label><input style={inputStyle} value={positionCap} onChange={(e) => setPositionCap(e.target.value)} /></div>
+            <div><label style={labelStyle}>Sector cap</label><input style={inputStyle} value={sectorCap} onChange={(e) => setSectorCap(e.target.value)} /></div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 24, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${COLORS.gray300}`, background: COLORS.white, cursor: "pointer", fontWeight: 600, color: COLORS.textSub }}>Cancel</button>
+          <button onClick={submit} disabled={saving} style={{ padding: "10px 20px", borderRadius: 2, border: "none", background: COLORS.accent, color: COLORS.white, cursor: saving ? "wait" : "pointer", fontWeight: 600, opacity: saving ? 0.6 : 1, letterSpacing: 0.3 }}>{saving ? "Saving..." : "Save Changes"}</button>
+        </div>
       </div>
     </div>
   );
@@ -1158,6 +1237,7 @@ export default function PortfolioDashboard() {
   const [portfolioId, setPortfolioId] = useState(null);
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [editingHolding, setEditingHolding] = useState(null);
+  const [editingMandate, setEditingMandate] = useState(false);
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [chartRange, setChartRange] = useState("SI");
   const [memoTickerFilter, setMemoTickerFilter] = useState(null);
@@ -1257,7 +1337,7 @@ export default function PortfolioDashboard() {
           data_as_of: m.data_as_of || null,
         }));
 
-        setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades, inceptionDate: pf.inception_date || null, inceptionValue: pf.inception_value ? +pf.inception_value : null } });
+        setPortfolios({ "Slackline Fund": { accountValue: +pf.account_value, holdings, trades, inceptionDate: pf.inception_date || null, inceptionValue: pf.inception_value ? +pf.inception_value : null, mandate: pf.mandate || null } });
         setMemos(loadedMemos);
       } catch (e) {
         console.error("Load error:", e);
@@ -1325,6 +1405,13 @@ export default function PortfolioDashboard() {
   const deleteHolding = async (id) => {
     await supabase.from("holdings").delete().eq("id", id);
     updatePortfolio(currentPortfolioKey, p => ({ ...p, holdings: p.holdings.filter(h => h.id !== id) }));
+  };
+
+  const saveMandate = async (mandate) => {
+    if (!portfolioId) return;
+    const { error } = await supabase.from("portfolios").update({ mandate }).eq("id", portfolioId);
+    if (error) { alert("Failed to save mandate: " + error.message); return; }
+    updatePortfolio(currentPortfolioKey, p => ({ ...p, mandate }));
   };
 
   const addTrades = async (ts) => {
@@ -1563,7 +1650,7 @@ export default function PortfolioDashboard() {
               {/* Structure + Mandate */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
                 <PortfolioStructure holdings={liveHoldings} />
-                <InvestmentMandate />
+                <InvestmentMandate mandate={portfolio.mandate} isAdmin={isAdmin} onEdit={() => setEditingMandate(true)} />
               </div>
 
               {/* Holdings table */}
@@ -1693,6 +1780,7 @@ export default function PortfolioDashboard() {
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       {showAddHolding && <AddHoldingForm onAdd={addHolding} onClose={() => setShowAddHolding(false)} />}
       {editingHolding && <AddHoldingForm initial={editingHolding} onAdd={(h) => updateHolding(editingHolding.id, h)} onClose={() => setEditingHolding(null)} />}
+      {editingMandate && <EditMandateForm initial={portfolio.mandate} onSave={saveMandate} onClose={() => setEditingMandate(false)} />}
       {showAddTrade && <AddTradeForm onAdd={addTrades} onClose={() => setShowAddTrade(false)} />}
       {showAddMemo && <AddMemoForm onAdd={addMemo} onClose={() => setShowAddMemo(false)} />}
       {editingMemo && <AddMemoForm initial={editingMemo} onAdd={(m) => updateMemo(editingMemo.id, m)} onClose={() => setEditingMemo(null)} />}
