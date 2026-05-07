@@ -537,7 +537,26 @@ function AddMemoForm({ onAdd, onClose, initial }) {
   const [pdfFile, setPdfFile] = useState(null);
   const [removePdf, setRemovePdf] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const handle = (k) => (e) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  // Map editorial subtypes to the canonical Type used for section bucketing.
+  const subtypeToType = (s) => {
+    const v = (s || "").toLowerCase();
+    if (v.includes("pass")) return "pass";
+    if (v.includes("thesis")) return "thesis";
+    if (v.includes("memo")) return "memo";
+    return null;
+  };
+  const handle = (k) => (e) => {
+    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setForm(prev => {
+      const next = { ...prev, [k]: value };
+      // Auto-sync Type when Subtype is selected so the memo lands in the right section.
+      if (k === "subtype") {
+        const derived = subtypeToType(value);
+        if (derived) next.type = derived;
+      }
+      return next;
+    });
+  };
   const updateMetric = (i, k, v) => setMetrics(prev => prev.map((m, idx) => idx === i ? { ...m, [k]: v } : m));
   const addMetricRow = () => setMetrics(prev => prev.length >= 7 ? prev : [...prev, { label: "", value: "", highlight: "" }]);
   const removeMetricRow = (i) => setMetrics(prev => prev.filter((_, idx) => idx !== i));

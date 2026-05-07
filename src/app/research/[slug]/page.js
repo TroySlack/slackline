@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import PdfPages from "./PdfPages.client";
 
 // Always fetch fresh — never cache the supabase row, so edits/deletes
@@ -18,19 +17,22 @@ const NEAR_BLACK = "#1A1A1A";
 const SERIF = "'Source Serif 4', 'Source Serif Pro', Georgia, 'Times New Roman', serif";
 const SANS = "'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-// Server-side supabase client (public anon key, public read RLS)
-function supa() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
-  );
-}
-
+// Direct REST fetch (bypasses any Next.js fetch caching layer that the
+// supabase-js client might otherwise inherit). cache: 'no-store' guarantees
+// every request hits the database fresh.
 async function fetchMemoBySlug(slug) {
   try {
-    const { data } = await supa().from("memos").select("*").eq("slug", slug).maybeSingle();
-    return data || null;
+    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/memos?slug=eq.${encodeURIComponent(slug)}&select=*&limit=1`;
+    const res = await fetch(url, {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const arr = await res.json();
+    return Array.isArray(arr) && arr.length ? arr[0] : null;
   } catch {
     return null;
   }
