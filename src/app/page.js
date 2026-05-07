@@ -884,7 +884,16 @@ function IndexedPerfChart({ fundSeries, benchmarkSeries, inceptionDate }) {
   for (let v = tickMin; v <= tickMax + 0.0001; v += 0.5) ticks.push(+(v + 100).toFixed(2));
 
   const last = merged[merged.length - 1] || { fund: 100, bench: 100 };
-  const fmtTick = (v) => { const d = new Date(v); return (d.getMonth()+1)+"/"+d.getDate(); };
+  // Parse YYYY-MM-DD strings directly so we don't get bitten by timezone
+  // shifts (new Date("2026-05-01") becomes UTC midnight → 4/30 in EDT).
+  const fmtTick = (v) => {
+    if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+      const [, m, d] = v.split("-");
+      return parseInt(m, 10) + "/" + parseInt(d, 10);
+    }
+    const d = new Date(v);
+    return (d.getMonth()+1)+"/"+d.getDate();
+  };
   const fmtPctTick = v => { const p = +(v - 100).toFixed(1); return (p > 0 ? "+" : "") + p.toFixed(1) + "%"; };
 
   return (
@@ -1402,8 +1411,14 @@ export default function PortfolioDashboard() {
           const fundColor = sinceInceptionPct >= 0 ? COLORS.green : COLORS.red;
           const benchColor = benchPct >= 0 ? COLORS.green : COLORS.red;
 
+          // Parse as local date (avoid UTC midnight → previous day in EDT)
+          const parseLocalDate = (s) => {
+            if (!s) return null;
+            const [y, m, d] = String(s).slice(0, 10).split("-").map(Number);
+            return new Date(y, (m || 1) - 1, d || 1);
+          };
           const inceptionLabel = inception
-            ? new Date(inception).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+            ? parseLocalDate(inception).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
             : "—";
 
           return (
@@ -1448,7 +1463,7 @@ export default function PortfolioDashboard() {
                   <div style={{ display: "flex", gap: 4, background: COLORS.gray100, borderRadius: 4, padding: 3 }}>
                     {(() => {
                       const today = new Date();
-                      const inceptionMs = inception ? new Date(inception).getTime() : null;
+                      const inceptionMs = inception ? parseLocalDate(inception).getTime() : null;
                       const lookbackStart = (label) => {
                         const d = new Date(today);
                         if (label === "1M") d.setMonth(today.getMonth() - 1);
