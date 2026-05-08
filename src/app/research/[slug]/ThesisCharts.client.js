@@ -19,19 +19,19 @@ const cardStyle = {
 };
 const tickStyle = { fontSize: 10, fill: GREY, fontFamily: SERIF };
 
-function GrossMarginChart({ data }) {
+function PercentLineChart({ title, data }) {
   if (!data?.labels?.length) return null;
   const series = data.labels.map((l, i) => ({ label: l, value: data.data[i] }));
-  const min = Math.min(...data.data) - 0.5;
-  const max = Math.max(...data.data) + 0.5;
+  const min = Math.floor(Math.min(...data.data) - 1);
+  const max = Math.ceil(Math.max(...data.data) + 1);
   return (
     <div style={cardStyle}>
-      <div style={titleStyle}>Gross margin %</div>
+      <div style={titleStyle}>{title}</div>
       <ResponsiveContainer width="100%" height={140}>
         <LineChart data={series} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 3" stroke={GREY_LIGHT} vertical={false} />
           <XAxis dataKey="label" tick={tickStyle} axisLine={{ stroke: GREY_LIGHT }} tickLine={false} />
-          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v.toFixed(1)} width={42} />
+          <YAxis tick={tickStyle} axisLine={false} tickLine={false} domain={[min, max]} tickFormatter={v => v} width={42} />
           <Tooltip formatter={v => v + "%"} contentStyle={{ borderRadius: 2, border: `0.5px solid ${BURGUNDY}`, fontSize: 11, fontFamily: SERIF }} />
           <Line type="linear" dataKey="value" stroke={BURGUNDY} strokeWidth={1.5} dot={{ r: 2, fill: BURGUNDY, strokeWidth: 0 }} isAnimationActive={false} />
         </LineChart>
@@ -96,12 +96,18 @@ function RevenueChart({ data }) {
 }
 
 export default function ThesisCharts({ charts }) {
-  if (!charts || (!charts.grossMargin && !charts.multiples && !charts.revenue)) return null;
+  if (!charts) return null;
+  const panels = [];
+  if (charts.grossMargin) panels.push(<PercentLineChart key="gm" title="Gross margin %" data={charts.grossMargin} />);
+  if (charts.roe) panels.push(<PercentLineChart key="roe" title="ROE %" data={charts.roe} />);
+  if (charts.multiples) panels.push(<MultiplesChart key="mult" data={charts.multiples} />);
+  if (charts.revenue) panels.push(<RevenueChart key="rev" data={charts.revenue} />);
+  if (!panels.length) return null;
+  // 1–3 panels in a single row; 4+ wraps to 2×2 on a wider screen
+  const cols = panels.length >= 4 ? "repeat(2, minmax(0, 1fr))" : `repeat(${panels.length}, minmax(0, 1fr))`;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginBottom: 24 }}>
-      {charts.grossMargin && <GrossMarginChart data={charts.grossMargin} />}
-      {charts.multiples && <MultiplesChart data={charts.multiples} />}
-      {charts.revenue && <RevenueChart data={charts.revenue} />}
+    <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, marginBottom: 24 }}>
+      {panels}
     </div>
   );
 }
